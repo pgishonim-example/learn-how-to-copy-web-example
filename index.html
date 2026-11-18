@@ -87,9 +87,13 @@
                 <div class="qc">
                     <h5>יצירת אישור יציאה</h5>
                     <div class="qc-row">
-                        <div class="qc-field" style="max-width:150px;">
+                        <div class="qc-field" style="max-width:120px;">
                             <label for="qTime">שעה</label>
                             <input type="text" id="qTime" class="form-control" inputmode="numeric" maxlength="5" placeholder="--:--">
+                        </div>
+                        <div class="qc-field" style="max-width:110px;">
+                            <label for="qClass">כיתה</label>
+                            <input type="text" id="qClass" class="form-control" placeholder="כיתה">
                         </div>
                         <div class="qc-field">
                             <label for="qReason">סיבה</label>
@@ -152,6 +156,7 @@
             document.getElementById('pwStep').style.display = 'none';
             document.getElementById('resStep').style.display = 'block';
             document.getElementById('qTime').value = nowHHMM();
+            document.getElementById('qClass').value = CUR.data.class || '';
             render();
         }).catch(function () { pwBtn.disabled = false; pwBtn.textContent = 'המשך'; showErr('שגיאת חיבור'); });
     }
@@ -195,7 +200,8 @@
             pList.innerHTML = pending.map(function (p) {
                 return '<div class="ex-card ex-pend">'
                     + '<span class="ex-badge">ממתין</span>'
-                    + '<div class="ex-main"><div class="ex-times">שעה <b>' + esc(p.time || '') + '</b></div>'
+                    + '<div class="ex-main"><div class="ex-times">שעה <b>' + esc(p.time || '') + '</b>'
+                    + (p.klass ? ' · כיתה <b>' + esc(p.klass) + '</b>' : '') + '</div>'
                     + (p.reason ? '<div class="ex-reason">' + esc(p.reason) + '</div>' : '') + '</div>'
                     + '<div class="ex-actions">'
                     + '<button class="btn btn-sm btn-success" data-leave="' + esc(p.id) + '">יצא עכשיו</button>'
@@ -215,7 +221,7 @@
                     + (isBack ? ' · חזר <b>' + esc(x.returnTime) + '</b>' : ' · <span style="color:#c9781a;font-weight:700;">עדיין לא חזר</span>');
                 return '<div class="ex-card ' + (isBack ? 'ex-back' : 'ex-out') + '">'
                     + '<span class="ex-badge">' + (isBack ? '✓ חזר' : '● בחוץ') + '</span>'
-                    + '<div class="ex-main"><div class="ex-date">' + esc(x.date || '') + '</div>'
+                    + '<div class="ex-main"><div class="ex-date">' + esc(x.date || '') + (x.klass ? ' · כיתה ' + esc(x.klass) : '') + '</div>'
                     + '<div class="ex-times">' + times + '</div>'
                     + (x.reason ? '<div class="ex-reason">' + esc(x.reason) + '</div>' : '') + '</div></div>';
             }).join('');
@@ -229,12 +235,13 @@
         var pending = (s.pending || []);
         if ((used + pending.length) >= max) return;
         var t = (document.getElementById('qTime').value || '').trim() || nowHHMM();
+        var klass = (document.getElementById('qClass').value || '').trim() || (s.class || '');
         var reason = (document.getElementById('qReason').value || '').trim();
         var now = new Date();
         var p = {
             id: 'p' + Date.now() + Math.random().toString(36).slice(2, 7),
             date: two(now.getDate()) + '/' + two(now.getMonth() + 1) + '/' + now.getFullYear(),
-            time: t, reason: reason, klass: s.class || '', createdAt: now.toISOString()
+            time: t, reason: reason, klass: klass, createdAt: now.toISOString()
         };
         var btn = document.getElementById('createBtn'); btn.disabled = true; btn.textContent = 'יוצר...';
         db.collection('students').doc(CUR.pw).update({
@@ -257,7 +264,7 @@
         if (!p) return;
         try {
             localStorage.setItem('pg_passData', JSON.stringify({
-                student: CUR.data.name || '', klass: CUR.data.class || '', taz: CUR.pw,
+                student: CUR.data.name || '', klass: p.klass || CUR.data.class || '', taz: CUR.pw,
                 date: p.date, time: p.time, reason: p.reason, pendingId: p.id
             }));
         } catch (e) {}
