@@ -212,6 +212,7 @@
                     + (p.reason ? '<div class="ex-reason">' + esc(p.reason) + '</div>' : '') + '</div>'
                     + '<div class="ex-actions">'
                     + '<button class="btn btn-sm btn-success" data-leave="' + esc(p.id) + '">יצא עכשיו</button>'
+                    + '<button class="btn btn-sm btn-outline-primary" data-view="' + esc(p.id) + '">צפה</button>'
                     + '<button class="btn btn-sm btn-outline-danger" data-remove="' + esc(p.id) + '">הסר</button>'
                     + '</div></div>';
             }).join('');
@@ -220,6 +221,7 @@
         // history (completed exits)
         var hWrap = document.getElementById('historyWrap'), hList = document.getElementById('historyList');
         var done = exits.slice().reverse();
+        done.forEach(function (x, i) { if (!x.id) x.id = 'x' + i + '_' + (x.at || x.time || ''); });
         if (done.length) {
             hWrap.style.display = 'block';
             hList.innerHTML = done.map(function (x) {
@@ -230,7 +232,8 @@
                     + '<span class="ex-badge">' + (isBack ? '✓ חזר' : '● בחוץ') + '</span>'
                     + '<div class="ex-main"><div class="ex-date">' + esc(x.date || '') + (x.klass ? ' · כיתה ' + esc(x.klass) : '') + '</div>'
                     + '<div class="ex-times">' + times + '</div>'
-                    + (x.reason ? '<div class="ex-reason">' + esc(x.reason) + '</div>' : '') + '</div></div>';
+                    + (x.reason ? '<div class="ex-reason">' + esc(x.reason) + '</div>' : '') + '</div>'
+                    + '<div class="ex-actions"><button class="btn btn-sm btn-outline-primary" data-view-exit="' + esc(x.id) + '">צפה</button></div></div>';
             }).join('');
         } else { hWrap.style.display = 'none'; hList.innerHTML = ''; }
     }
@@ -285,10 +288,35 @@
         window.location.href = 'מערכת פגישונים דף 2.html';
     }
 
+    // open any leave as the full release screen (view only)
+    function openPassView(o) {
+        try {
+            localStorage.setItem('pg_passData', JSON.stringify({
+                student: o.name || (CUR.data && CUR.data.name) || '', klass: o.klass || '', taz: CUR.pw,
+                date: o.date || '', time: o.time || '', reason: o.reason || '',
+                exitTime: o.exitTime || '', returnTime: o.returnTime || '',
+                viewOnly: true
+            }));
+        } catch (e) {}
+        window.location.href = 'מערכת פגישונים דף 2.html';
+    }
+
     document.getElementById('pendList').addEventListener('click', function (e) {
         var btn = e.target.closest('button'); if (!btn) return;
         if (btn.getAttribute('data-remove')) removePending(btn.getAttribute('data-remove'));
         else if (btn.getAttribute('data-leave')) leavePending(btn.getAttribute('data-leave'));
+        else if (btn.getAttribute('data-view')) {
+            var pid = btn.getAttribute('data-view');
+            var p = (CUR.data.pending || []).filter(function (o) { return o.id === pid; })[0];
+            if (p) openPassView(p);
+        }
+    });
+
+    document.getElementById('historyList').addEventListener('click', function (e) {
+        var btn = e.target.closest('button'); if (!btn) return;
+        var exid = btn.getAttribute('data-view-exit'); if (!exid) return;
+        var x = (CUR.data.exits || []).filter(function (o) { return o.id === exid; })[0];
+        if (x) openPassView(x);
     });
 
     document.getElementById('createBtn').onclick = createPending;

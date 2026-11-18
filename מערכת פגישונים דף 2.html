@@ -85,6 +85,26 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         if(document.readyState!=='loading') fill(); else document.addEventListener('DOMContentLoaded', fill);
       })();
     </script>
+    <script>
+      // View-only mode: open a pending/past leave as the pass, without committing.
+      (function(){
+        var d={}; try{ d=JSON.parse(localStorage.getItem('pg_passData')||'{}'); }catch(e){}
+        if(!d.viewOnly) return;
+        function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+        function apply(){
+          var btn=document.getElementById('fakeSubmitExistSchool');
+          if(btn){ btn.innerHTML='<i class="bi bi-arrow-right" aria-hidden="true"></i> חזרה לרשימה'; btn.classList.remove('btn-success'); btn.classList.add('btn-primary'); btn.onclick=function(){ window.location.href='index.html'; return false; }; }
+          var grid=document.querySelector('.info-grid');
+          if(grid){
+            function addTile(label,val){ if(!val) return; var t=document.createElement('div'); t.className='info-tile'; t.innerHTML='<div class="info-label">'+esc(label)+'</div><div class="info-value">'+esc(val)+'</div>'; grid.appendChild(t); }
+            addTile('שעת יציאה', d.exitTime);
+            addTile('שעת חזרה', d.returnTime);
+          }
+          var sub=document.querySelector('.exit-pass-subtitle'); if(sub) sub.textContent='צפייה באישור';
+        }
+        if(document.readyState!=='loading') apply(); else document.addEventListener('DOMContentLoaded', apply);
+      })();
+    </script>
     <!-- Chrome, Firefox OS and Opera -->
     <meta name="theme-color" content="#223e9c">
     <link rel="manifest" href="manifest.json">
