@@ -27,12 +27,12 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <script>
       // Firebase loads in the BACKGROUND so the pass shows instantly; it is ready well before you tap "נעל אישור".
       var _pgdb = null;
-      function pgInit(){ try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {} }
+      function pgInit(){ try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); } } catch (e) {} }
       document.addEventListener('DOMContentLoaded', pgInit);
       // Safe speed-up: pre-download the next screen (does NOT change saving).
       window.addEventListener('load', function(){ try { var l=document.createElement('link'); l.rel='prefetch'; l.href='מערכת פגישונים דף 4.html'; document.head.appendChild(l); } catch(e){} });
-      // Navigate as soon as the write is acknowledged OR after a short beat (write stays queued & durable).
-      function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 250); }
+      // Move on the instant the write is acknowledged (fast now that persistence is gone); 3s cap only guards a network hang.
+      function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 3000); }
       // Commit the exit: count it + log it in the database, ONLY when approved here.
       function pgCommitExit(btn){
         if (btn) { btn.disabled = true; }
