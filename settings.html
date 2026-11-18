@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>הגדרות מנהל - פגישונים</title>
+    <link rel="stylesheet" href="./מערכת פגישונים_files/general-pages.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/app.rtl.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/app-dark.rtl.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/app-custom.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/app-dark-custom.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/app-fonts-override.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/certifications.css">
+    <meta name="theme-color" content="#223e9c">
+    <style>
+        .admin-wrap { max-width: 760px; margin: 0 auto; padding: 18px 14px 60px; }
+        .admin-card { background:#fff; border-radius:16px; box-shadow:0 8px 30px rgba(0,0,0,.08); padding:20px; margin-bottom:18px; }
+        .admin-head { background:linear-gradient(135deg,#152d5a,#3b5fc7); color:#fff; border-radius:16px; padding:18px 20px; margin-bottom:18px; display:flex; justify-content:space-between; align-items:center; }
+        .admin-head h1 { font-size:1.3rem; margin:0; }
+        table.stu { width:100%; border-collapse:collapse; }
+        table.stu th, table.stu td { padding:9px 8px; border-bottom:1px solid #eee; text-align:right; font-size:.95rem; }
+        table.stu th { color:#555; font-weight:700; }
+        .pill { display:inline-block; min-width:28px; text-align:center; padding:2px 8px; border-radius:999px; font-weight:700; }
+        .pill.ok { background:#e4ffef; color:#0f7a55; }
+        .pill.no { background:#ffe3e3; color:#b13131; }
+        .row-actions button { margin-inline-start:4px; }
+        .muted { color:#888; }
+    </style>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+</head>
+<body>
+<div class="admin-wrap">
+    <div class="admin-head">
+        <h1>הגדרות מנהל</h1>
+        <a href="index.html" style="color:#fff; text-decoration:underline;">חזרה</a>
+    </div>
+
+    <div id="setupNotice" class="admin-card" style="display:none; background:#fff6e5;">
+        המערכת עדיין לא חוברה למסד הנתונים.
+    </div>
+
+    <!-- Admin login (Firebase Auth) -->
+    <div id="gate" class="admin-card" style="display:none;">
+        <h3 style="margin-top:0;">כניסת מנהל</h3>
+        <p class="muted">התחברו עם האימייל והסיסמה של המנהל (אלה שהוגדרו ב-Firebase Authentication).</p>
+        <input type="email" id="admEmail" class="form-control form-control-lg mb-2" placeholder="אימייל מנהל" dir="ltr">
+        <input type="password" id="admPw" class="form-control form-control-lg" placeholder="סיסמה" dir="ltr">
+        <div class="d-grid mt-3"><button id="gateBtn" class="btn btn-primary btn-lg">כניסה</button></div>
+        <div id="gateErr" class="text-danger mt-2 fw-bold" style="display:none"></div>
+    </div>
+
+    <!-- Admin panel -->
+    <div id="panel" style="display:none;">
+        <div class="admin-card" style="display:flex; justify-content:space-between; align-items:center;">
+            <span class="muted">מחובר/ת כ: <b id="who"></b></span>
+            <button id="logoutBtn" class="btn btn-sm btn-outline-secondary">התנתק</button>
+        </div>
+
+        <div class="admin-card">
+            <h3 style="margin-top:0;">תלמידים</h3>
+            <div style="overflow-x:auto;">
+                <table class="stu">
+                    <thead><tr><th>שם</th><th>סיסמה</th><th>מכסה</th><th>נוצל</th><th>נותרו</th><th></th></tr></thead>
+                    <tbody id="stuBody"><tr><td colspan="6" class="muted">טוען...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="admin-card">
+            <h3 style="margin-top:0;">הוספת תלמיד</h3>
+            <div class="row g-2">
+                <div class="col-12 col-sm-4"><input id="nName" class="form-control" placeholder="שם התלמיד"></div>
+                <div class="col-6 col-sm-4"><input id="nPw" class="form-control" placeholder="סיסמה" dir="ltr"></div>
+                <div class="col-6 col-sm-2"><input id="nMax" type="number" min="0" class="form-control" placeholder="מכסה"></div>
+                <div class="col-12 col-sm-2 d-grid"><button id="addBtn" class="btn btn-success">הוסף</button></div>
+            </div>
+            <div id="addErr" class="text-danger mt-2" style="display:none"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var cfg = window.firebaseConfig || {};
+    var connected = cfg.apiKey && cfg.apiKey.indexOf('PASTE') === -1;
+    if (!connected) { document.getElementById('setupNotice').style.display = 'block'; return; }
+    firebase.initializeApp(cfg);
+    var auth = firebase.auth();
+    var db = firebase.firestore();
+
+    var gate = document.getElementById('gate');
+    var panel = document.getElementById('panel');
+
+    function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+    function gErr(m){ var e=document.getElementById('gateErr'); e.textContent=m; e.style.display='block'; }
+
+    auth.onAuthStateChanged(function (user) {
+        if (user) {
+            gate.style.display = 'none';
+            panel.style.display = 'block';
+            document.getElementById('who').textContent = user.email || '';
+            loadStudents();
+        } else {
+            gate.style.display = 'block';
+            panel.style.display = 'none';
+        }
+    });
+
+    document.getElementById('gateBtn').onclick = function () {
+        var email = document.getElementById('admEmail').value.trim();
+        var pw = document.getElementById('admPw').value;
+        document.getElementById('gateErr').style.display = 'none';
+        if (!email || !pw) { gErr('יש להזין אימייל וסיסמה'); return; }
+        auth.signInWithEmailAndPassword(email, pw).catch(function (e) {
+            gErr('התחברות נכשלה — בדקו אימייל/סיסמה');
+        });
+    };
+    document.getElementById('logoutBtn').onclick = function () { auth.signOut(); };
+
+    function loadStudents() {
+        var tb = document.getElementById('stuBody');
+        tb.innerHTML = '<tr><td colspan="6" class="muted">טוען...</td></tr>';
+        db.collection('students').get().then(function (snap) {
+            if (snap.empty) { tb.innerHTML = '<tr><td colspan="6" class="muted">אין תלמידים עדיין</td></tr>'; return; }
+            var html = '';
+            snap.forEach(function (d) {
+                var s = d.data();
+                var max = Number(s.maxLeaves) || 0, used = Number(s.usedLeaves) || 0;
+                var rem = Math.max(0, max - used);
+                html += '<tr data-id="' + esc(d.id) + '">'
+                    + '<td>' + esc(s.name) + '</td>'
+                    + '<td dir="ltr">' + esc(d.id) + '</td>'
+                    + '<td>' + max + '</td>'
+                    + '<td>' + used + '</td>'
+                    + '<td><span class="pill ' + (rem > 0 ? 'ok' : 'no') + '">' + rem + '</span></td>'
+                    + '<td class="row-actions" style="white-space:nowrap;">'
+                    + '<button class="btn btn-sm btn-outline-secondary" data-act="edit">ערוך</button>'
+                    + '<button class="btn btn-sm btn-outline-success" data-act="reset">איפוס</button>'
+                    + '<button class="btn btn-sm btn-outline-danger" data-act="del">מחק</button>'
+                    + '</td></tr>';
+            });
+            tb.innerHTML = html;
+        }).catch(function () { tb.innerHTML = '<tr><td colspan="6" class="text-danger">שגיאת טעינה</td></tr>'; });
+    }
+
+    document.getElementById('stuBody').addEventListener('click', function (e) {
+        var btn = e.target.closest('button'); if (!btn) return;
+        var tr = e.target.closest('tr'); var id = tr.getAttribute('data-id'); var act = btn.getAttribute('data-act');
+        var ref = db.collection('students').doc(id);
+        if (act === 'del') {
+            if (confirm('למחוק את התלמיד?')) ref.delete().then(loadStudents);
+        } else if (act === 'reset') {
+            ref.update({ usedLeaves: 0 }).then(loadStudents);
+        } else if (act === 'edit') {
+            ref.get().then(function (d) {
+                var s = d.data();
+                var name = prompt('שם:', s.name); if (name === null) return;
+                var max = prompt('מכסת יציאות:', s.maxLeaves); if (max === null) return;
+                ref.update({ name: name.trim(), maxLeaves: Number(max) || 0 }).then(loadStudents);
+            });
+        }
+    });
+
+    document.getElementById('addBtn').onclick = function () {
+        var name = document.getElementById('nName').value.trim();
+        var pw = document.getElementById('nPw').value.trim();
+        var max = Number(document.getElementById('nMax').value) || 0;
+        var err = document.getElementById('addErr');
+        err.style.display = 'none';
+        if (!name || !pw) { err.textContent = 'יש למלא שם וסיסמה'; err.style.display = 'block'; return; }
+        var ref = db.collection('students').doc(pw);
+        ref.get().then(function (d) {
+            if (d.exists) { err.textContent = 'סיסמה זו כבר בשימוש'; err.style.display = 'block'; return; }
+            ref.set({ name: name, maxLeaves: max, usedLeaves: 0 }).then(function () {
+                document.getElementById('nName').value = '';
+                document.getElementById('nPw').value = '';
+                document.getElementById('nMax').value = '';
+                loadStudents();
+            });
+        });
+    };
+})();
+</script>
+</body>
+</html>

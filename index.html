@@ -18,109 +18,136 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-title" content="פגישונים">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <style>
-        .setup-form { padding: 22px; }
-        .setup-form .form-label { font-weight: 600; margin-bottom: 4px; }
-        .setup-form .form-control, .setup-form .form-select { font-size: 1rem; }
-        .setup-form .row { --bs-gutter-x: 14px; }
+        .start-body { padding: 22px; }
+        .start-body .form-label { font-weight: 600; }
+        #remainBox { font-size: 1.5rem; }
+        #remainBox b { color: #18a76c; font-size: 2rem; }
     </style>
-    <script>
-        function pgGo(url){ window.location.href = url; return false; }
-    </script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
 </head>
 <body class="">
 <div class="exit-pass-page ext-page">
     <div class="exit-pass-card">
         <div class="exit-pass-header">
             <div>
-                <h1 class="exit-pass-title">יצירת אישור יציאה</h1>
-                <div class="exit-pass-subtitle">מילוי פרטי התלמיד והאישור</div>
+                <h1 class="exit-pass-title">אישור יציאה</h1>
+                <div class="exit-pass-subtitle">הזינו סיסמה כדי להמשיך</div>
             </div>
             <div class="exit-pass-brand">
                 <img src="./מערכת פגישונים_files/logo_pgishonim_full_white.png" alt="pgishonim">
             </div>
         </div>
         <div class="exit-pass-body">
-            <form id="setupForm" class="setup-form" novalidate>
-                <div class="row">
-                    <div class="col-12 col-sm-6 mb-3">
-                        <label class="form-label" for="f_student">שם התלמיד</label>
-                        <input type="text" id="f_student" class="form-control" placeholder="שם מלא" required>
-                    </div>
-                    <div class="col-12 col-sm-6 mb-3">
-                        <label class="form-label" for="f_klass">כיתה</label>
-                        <input type="text" id="f_klass" class="form-control" placeholder="לדוגמה: י3">
-                    </div>
-                    <div class="col-12 col-sm-6 mb-3">
-                        <label class="form-label" for="f_date">תאריך</label>
-                        <input type="date" id="f_date" class="form-control">
-                    </div>
-                    <div class="col-12 col-sm-6 mb-3">
-                        <label class="form-label" for="f_time">שעה</label>
-                        <input type="time" id="f_time" class="form-control">
-                    </div>
-                    <div class="col-12 col-sm-6 mb-3">
-                        <label class="form-label" for="f_reason">סיבה</label>
-                        <input type="text" id="f_reason" class="form-control" placeholder="סיבת היציאה">
-                    </div>
-                    <div class="col-12 col-sm-6 mb-3">
-                        <label class="form-label" for="f_taz">תעודת זהות</label>
-                        <input type="text" id="f_taz" class="form-control dir-ltr" dir="ltr" inputmode="numeric" placeholder="מספר ת״ז">
-                    </div>
+            <div id="setupNotice" class="alert alert-warning" style="display:none; margin:16px;">
+                המערכת עדיין לא חוברה למסד הנתונים. יש להשלים את הגדרת Firebase.
+            </div>
+
+            <div id="pwStep" class="start-body">
+                <div class="alert alert-info text-center">הזינו את הסיסמה האישית שלכם</div>
+                <input type="password" id="pw" class="form-control form-control-lg text-center" placeholder="סיסמה" autocomplete="off">
+                <div class="d-grid mt-3">
+                    <button id="pwBtn" class="btn btn-success btn-lg">המשך</button>
                 </div>
-                <div class="d-grid mt-2">
-                    <button type="submit" class="btn btn-success btn-lg">צור אישור והמשך</button>
+                <div id="pwErr" class="text-danger text-center mt-3 fw-bold" style="display:none"></div>
+            </div>
+
+            <div id="resStep" class="start-body" style="display:none">
+                <h2 id="hello" class="text-center mb-3"></h2>
+                <div id="remainBox" class="text-center my-3"></div>
+                <div id="proceedWrap" class="d-grid">
+                    <button id="proceedBtn" class="btn btn-success btn-lg">צור אישור יציאה</button>
                 </div>
-                <div class="pass-footer mt-3" style="text-align:center; color:var(--muted);">הפרטים נשמרים במכשיר ומוצגים באישור</div>
-            </form>
+                <div id="blockedBox" class="alert alert-danger text-center" style="display:none">
+                    ניצלתם את כל היציאות שלכם. לא ניתן ליצור אישור נוסף.
+                </div>
+                <div class="text-center mt-3"><a href="#" id="backLink">חזרה</a></div>
+            </div>
+
+            <div class="pass-footer" style="text-align:center; padding:12px;">
+                <a href="settings.html">הגדרות מנהל</a>
+            </div>
         </div>
     </div>
 </div>
+
 <script>
-    (function(){
-        var DEFAULTS = {
-            student: 'דורי שגיא', klass: 'י3', date: '', time: '11:26',
-            reason: 'סיים בית ספר', taz: ''
-        };
-        function pad(n){ return (n<10?'0':'')+n; }
-        function todayISO(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
-        function displayToISO(s){ // dd/mm/yyyy -> yyyy-mm-dd
-            if(!s) return todayISO();
-            var m = s.match(/^(\d{2})\/(\d{2})\/(\d{4})$/); return m ? (m[3]+'-'+m[2]+'-'+m[1]) : todayISO();
+    (function () {
+        var cfg = window.firebaseConfig || {};
+        var connected = cfg.apiKey && cfg.apiKey.indexOf('PASTE') === -1;
+        var db = null;
+        if (connected) {
+            try { firebase.initializeApp(cfg); db = firebase.firestore(); }
+            catch (e) { connected = false; }
         }
-        function isoToDisplay(s){ // yyyy-mm-dd -> dd/mm/yyyy
-            if(!s) return ''; var m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/); return m ? (m[3]+'/'+m[2]+'/'+m[1]) : s;
+        if (!connected) { document.getElementById('setupNotice').style.display = 'block'; }
+
+        var pwBtn = document.getElementById('pwBtn');
+        var pwInput = document.getElementById('pw');
+
+        function showErr(m) { var e = document.getElementById('pwErr'); e.textContent = m; e.style.display = 'block'; }
+        function clearErr() { document.getElementById('pwErr').style.display = 'none'; }
+
+        function lookup() {
+            var pw = (pwInput.value || '').trim();
+            clearErr();
+            if (!pw) { showErr('יש להזין סיסמה'); return; }
+            if (!connected) { showErr('המערכת עדיין לא חוברה למסד הנתונים'); return; }
+            pwBtn.disabled = true; pwBtn.textContent = 'בודק...';
+            db.collection('students').doc(pw).get()
+                .then(function (doc) {
+                    pwBtn.disabled = false; pwBtn.textContent = 'המשך';
+                    if (!doc.exists) { showErr('סיסמה שגויה'); return; }
+                    var s = doc.data();
+                    var remaining = (Number(s.maxLeaves) || 0) - (Number(s.usedLeaves) || 0);
+                    showResult(pw, s, remaining, pw);
+                })
+                .catch(function () { pwBtn.disabled = false; pwBtn.textContent = 'המשך'; showErr('שגיאת חיבור למסד הנתונים'); });
         }
-        var saved = {}; try { saved = JSON.parse(localStorage.getItem('pg_passData') || '{}') || {}; } catch(e){}
-        function g(k){ return (saved[k]!=null && saved[k]!=='') ? saved[k] : DEFAULTS[k]; }
 
-        document.getElementById('f_student').value = g('student');
-        document.getElementById('f_klass').value = g('klass');
-        document.getElementById('f_date').value = saved.date ? displayToISO(saved.date) : todayISO();
-        document.getElementById('f_time').value = g('time');
-        document.getElementById('f_reason').value = g('reason');
-        document.getElementById('f_taz').value = g('taz');
+        function showResult(id, s, remaining, pw) {
+            document.getElementById('pwStep').style.display = 'none';
+            document.getElementById('resStep').style.display = 'block';
+            document.getElementById('hello').textContent = 'שלום ' + (s.name || '');
+            document.getElementById('remainBox').innerHTML = 'נותרו לך <b>' + Math.max(0, remaining) + '</b> יציאות';
+            var proceedWrap = document.getElementById('proceedWrap');
+            var blockedBox = document.getElementById('blockedBox');
+            if (remaining > 0) {
+                proceedWrap.style.display = '';
+                blockedBox.style.display = 'none';
+                document.getElementById('proceedBtn').onclick = function () {
+                    var btn = this; btn.disabled = true; btn.textContent = 'יוצר...';
+                    db.collection('students').doc(id).update({
+                        usedLeaves: firebase.firestore.FieldValue.increment(1)
+                    }).then(function () {
+                        try {
+                            localStorage.setItem('pg_passData', JSON.stringify({
+                                student: s.name || '', klass: s.class || '', taz: pw
+                            }));
+                        } catch (e) {}
+                        window.location.href = 'fill.html';
+                    }).catch(function () { btn.disabled = false; btn.textContent = 'צור אישור יציאה'; alert('שגיאה בעדכון'); });
+                };
+            } else {
+                proceedWrap.style.display = 'none';
+                blockedBox.style.display = 'block';
+            }
+        }
 
-        document.getElementById('setupForm').addEventListener('submit', function(e){
+        pwBtn.onclick = lookup;
+        pwInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') lookup(); });
+        document.getElementById('backLink').onclick = function (e) {
             e.preventDefault();
-            function v(id){ return (document.getElementById(id).value || '').trim(); }
-            var data = {
-                student: v('f_student'), klass: v('f_klass'),
-                date: isoToDisplay(v('f_date')), time: v('f_time'),
-                reason: v('f_reason'),
-                taz: v('f_taz')
-            };
-            try { localStorage.setItem('pg_passData', JSON.stringify(data)); } catch(err){}
-            pgGo('מערכת פגישונים.html');
-        });
+            document.getElementById('resStep').style.display = 'none';
+            document.getElementById('pwStep').style.display = 'block';
+            clearErr(); pwInput.value = '';
+        };
     })();
-</script>
-<script>
+
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function () {
-            navigator.serviceWorker.register('sw.js').catch(function () {});
-        });
+        window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
     }
 </script>
 </body>

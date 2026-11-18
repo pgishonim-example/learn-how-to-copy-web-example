@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Each student is one document whose ID is their password.
+    match /students/{pw} {
+
+      // A student can read ONLY their own record, and only if they know
+      // the password (= the document id). Nobody can list/enumerate everyone.
+      allow get: if true;
+
+      // Only a signed-in admin can list everyone or add / remove / freely edit.
+      allow list, create, delete: if request.auth != null;
+
+      // Updates: admin can do anything; a student (not signed in) may ONLY
+      // spend exactly one leave at a time, and never go past their limit.
+      allow update: if request.auth != null
+        || (
+             request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedLeaves'])
+          && request.resource.data.usedLeaves is int
+          && request.resource.data.usedLeaves == resource.data.usedLeaves + 1
+          && request.resource.data.usedLeaves <= resource.data.maxLeaves
+        );
+    }
+  }
+}
