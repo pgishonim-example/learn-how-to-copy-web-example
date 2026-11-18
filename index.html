@@ -23,9 +23,20 @@
         .start-body .form-label { font-weight: 600; }
         #remainBox { font-size: 1.5rem; }
         #remainBox b { color: #18a76c; font-size: 2rem; }
-        .hist-row { display:flex; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid #eee; border-radius:10px; margin-bottom:8px; background:#fafbfc; }
-        .hist-when { font-weight:600; color:#223e9c; }
-        .hist-reason { color:#555; }
+        .status-banner { text-align:center; font-weight:800; font-size:1.25rem; padding:14px; border-radius:14px; margin-bottom:6px; }
+        .status-banner.sb-out { background:#fff3e0; color:#c9781a; border:2px solid #f0c27a; }
+        .status-banner.sb-in { background:#e4ffef; color:#0f7a55; border:2px solid #9fe3c4; }
+        .ex-card { display:flex; gap:12px; align-items:center; border-radius:14px; padding:12px 14px; margin-bottom:10px; background:#fff; border:1px solid #e8edf5; box-shadow:0 2px 8px rgba(0,0,0,.05); border-right:7px solid #bbb; }
+        .ex-card.ex-out { border-right-color:#e8a33d; background:#fffaf0; }
+        .ex-card.ex-back { border-right-color:#18a76c; background:#f5fffa; }
+        .ex-badge { font-weight:800; font-size:.85rem; padding:6px 12px; border-radius:999px; white-space:nowrap; }
+        .ex-card.ex-out .ex-badge { background:#ffe6c2; color:#b5660f; }
+        .ex-card.ex-back .ex-badge { background:#c9f6e1; color:#0f7a55; }
+        .ex-main { flex:1; }
+        .ex-date { font-weight:700; color:#223e9c; }
+        .ex-times { font-size:1.05rem; margin:2px 0; }
+        .ex-times b { color:#111; }
+        .ex-reason { color:#888; font-size:.9rem; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -61,6 +72,7 @@
                 <h2 id="hello" class="text-center mb-2"></h2>
                 <div id="remainBox" class="text-center my-2"></div>
                 <div id="usedBox" class="text-center mb-3" style="color:#888;"></div>
+                <div id="statusBanner" class="mb-3"></div>
                 <div id="proceedWrap" class="d-grid">
                     <button id="proceedBtn" class="btn btn-success btn-lg">צור אישור יציאה</button>
                 </div>
@@ -117,6 +129,20 @@
 
         function esc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
 
+        function pgExitCard(x) {
+            var isBack = !!x.returnTime;
+            var times = 'יצא <b>' + esc(x.time || '') + '</b>'
+                + (isBack ? ' · חזר <b>' + esc(x.returnTime) + '</b>'
+                          : ' · <span style="color:#c9781a;font-weight:700;">עדיין לא חזר</span>');
+            return '<div class="ex-card ' + (isBack ? 'ex-back' : 'ex-out') + '">'
+                + '<span class="ex-badge">' + (isBack ? '✓ חזר' : '● בחוץ') + '</span>'
+                + '<div class="ex-main">'
+                + '<div class="ex-date">' + esc(x.date || '') + '</div>'
+                + '<div class="ex-times">' + times + '</div>'
+                + (x.reason ? '<div class="ex-reason">' + esc(x.reason) + '</div>' : '')
+                + '</div></div>';
+        }
+
         function showResult(id, s, remaining, pw) {
             document.getElementById('pwStep').style.display = 'none';
             document.getElementById('resStep').style.display = 'block';
@@ -125,16 +151,19 @@
             var used = Number(s.usedLeaves) || 0, max = Number(s.maxLeaves) || 0;
             document.getElementById('usedBox').textContent = 'ניצלת ' + used + ' מתוך ' + max;
 
+            // Current status banner (what a guard checks: is the student out or back?)
+            var lastOut = null;
+            (s.exits || []).forEach(function (x) { if (!x.returnTime) lastOut = x; });
+            var sb = document.getElementById('statusBanner');
+            if (lastOut) { sb.className = 'mb-3 status-banner sb-out'; sb.innerHTML = '🔴 כרגע בחוץ · יצא ' + esc(lastOut.time || ''); }
+            else { sb.className = 'mb-3 status-banner sb-in'; sb.innerHTML = '🟢 נמצא/ת בבית הספר'; }
+
             var exits = (s.exits || []).slice().reverse();
             var hWrap = document.getElementById('historyWrap');
             var hList = document.getElementById('historyList');
             if (exits.length) {
                 hWrap.style.display = 'block';
-                hList.innerHTML = exits.map(function (x) {
-                    var ret = x.returnTime ? ('חזר ' + esc(x.returnTime)) : 'עדיין בחוץ';
-                    return '<div class="hist-row"><span class="hist-when">' + esc(x.date || '') + ' · יצא ' + esc(x.time || '') + '</span>'
-                        + '<span class="hist-reason">' + esc(x.reason || '') + ' · ' + ret + '</span></div>';
-                }).join('');
+                hList.innerHTML = exits.map(pgExitCard).join('');
             } else {
                 hWrap.style.display = 'none';
             }

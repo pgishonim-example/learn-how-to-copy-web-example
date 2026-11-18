@@ -24,6 +24,11 @@
         .setup-form .form-label { font-weight: 600; margin-bottom: 4px; }
         .setup-form .form-control, .setup-form .form-select { font-size: 1rem; }
         .setup-form .row { --bs-gutter-x: 14px; }
+        .time-field .form-label { display:block; text-align:center; font-size:1.05rem; margin-bottom:10px; }
+        .time-picker { display:flex; align-items:center; justify-content:center; gap:12px; background:linear-gradient(135deg,#eef4ff,#f7faff); border:1px solid #d7e3f8; border-radius:16px; padding:16px; }
+        .time-sel { -webkit-appearance:none; appearance:none; text-align:center; text-align-last:center; width:auto; min-width:92px; font-size:1.7rem; font-weight:700; color:#223e9c; background:#fff; border:2px solid #cdddf6; border-radius:12px; padding:10px 16px; box-shadow:0 2px 6px rgba(34,62,156,.08); }
+        .time-sel:focus { outline:none; border-color:#3b5fc7; box-shadow:0 0 0 3px rgba(59,95,199,.18); }
+        .time-colon { font-size:2rem; font-weight:800; color:#223e9c; }
     </style>
     <script>
         function pgGo(url){ window.location.href = url; return false; }
@@ -60,6 +65,14 @@
                         <label class="form-label" for="f_reason">סיבה</label>
                         <input type="text" id="f_reason" class="form-control" placeholder="סיבת היציאה">
                     </div>
+                    <div class="col-12 mb-3 time-field">
+                        <label class="form-label">באיזו שעה לצאת?</label>
+                        <div class="time-picker">
+                            <select id="f_hour" class="time-sel" aria-label="שעה"></select>
+                            <span class="time-colon">:</span>
+                            <select id="f_min" class="time-sel" aria-label="דקות"></select>
+                        </div>
+                    </div>
                 </div>
                 <div class="d-grid mt-2">
                     <button type="submit" class="btn btn-success btn-lg">צור אישור והמשך</button>
@@ -92,15 +105,28 @@
         document.getElementById('f_date').value = saved.date ? displayToISO(saved.date) : todayISO();
         document.getElementById('f_reason').value = g('reason');
 
+        // Time picker: hours 00-23, minutes in 5-minute steps, default to the current time
+        var hSel = document.getElementById('f_hour'), mSel = document.getElementById('f_min'), i, o;
+        for (i = 0; i < 24; i++) { o = document.createElement('option'); o.value = ('0'+i).slice(-2); o.textContent = ('0'+i).slice(-2); hSel.appendChild(o); }
+        for (i = 0; i < 60; i += 5) { o = document.createElement('option'); o.value = ('0'+i).slice(-2); o.textContent = ('0'+i).slice(-2); mSel.appendChild(o); }
+        (function () {
+            var savedT = (saved.time && /^\d{2}:\d{2}$/.test(saved.time)) ? saved.time.split(':') : null;
+            var nd = new Date();
+            var hh = savedT ? savedT[0] : ('0' + nd.getHours()).slice(-2);
+            var mm = savedT ? savedT[1] : ('0' + Math.min(55, Math.round(nd.getMinutes() / 5) * 5)).slice(-2);
+            hSel.value = hh;
+            // snap minutes to the nearest available 5-min option
+            mSel.value = ('0' + (Math.min(55, Math.round(parseInt(mm, 10) / 5) * 5))).slice(-2);
+        })();
+
         document.getElementById('setupForm').addEventListener('submit', function(e){
             e.preventDefault();
             function v(id){ return (document.getElementById(id).value || '').trim(); }
             var prev = {}; try { prev = JSON.parse(localStorage.getItem('pg_passData') || '{}') || {}; } catch(e){}
-            var nowT = new Date();
-            var nowHHMM = ('0' + nowT.getHours()).slice(-2) + ':' + ('0' + nowT.getMinutes()).slice(-2);
             var data = {
                 student: v('f_student'), klass: v('f_klass'),
-                date: isoToDisplay(v('f_date')), time: nowHHMM,
+                date: isoToDisplay(v('f_date')),
+                time: document.getElementById('f_hour').value + ':' + document.getElementById('f_min').value,
                 reason: v('f_reason'),
                 taz: prev.taz || ''
             };
