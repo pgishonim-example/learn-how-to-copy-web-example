@@ -21,40 +21,18 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <link rel="apple-touch-icon" sizes="180x180" href="https://pgishonim.com/M/assets/images/apple-touch-icon.png?v=1788903552">
 
     <title>מערכת פגישונים</title>
-    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script defer src="firebase-config.js"></script>
     <script>
-      // Firebase loads in the BACKGROUND so this screen shows instantly; it is ready well before you tap "עדכן חזרה".
-      var _pgdb = null;
-      function pgInit(){ try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); } } catch (e) {} }
-      document.addEventListener('DOMContentLoaded', pgInit);
-      // Safe speed-up: pre-download the next screen (does NOT change saving).
-      window.addEventListener('load', function(){ try { var l=document.createElement('link'); l.rel='prefetch'; l.href='מערכת פגישונים דף 6.html'; document.head.appendChild(l); } catch(e){} });
-      function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 3000); }
-      // Log the return in the database: stamp the latest still-out exit as returned.
+      // Local-only: confirming the return stamps the time on THIS phone and moves on. Nothing is sent anywhere.
       function pgCommitReturn(done){
         var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
-        var id = d.taz;
         var now = new Date();
         var hh = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
         d.returnTime = hh;
-        if (!_pgdb) { pgInit(); }
-        if (!_pgdb || !id) { try { localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} done(); return; }
-        function commit(exits){
-          exits = (exits || []).slice();
-          for (var i = exits.length - 1; i >= 0; i--) { if (!exits[i].returnTime) { exits[i].returnTime = hh; exits[i].status = 'returned'; break; } }
-          d.exits = exits; try { localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
-          pgNav(_pgdb.collection('students').doc(id).update({ exits: exits }), done);
-        }
-        if (d.exits !== undefined) {
-          commit(d.exits);   // instant — data came from the previous screen
-        } else {
-          _pgdb.collection('students').doc(id).get().then(function (doc) {
-            commit(doc.exists ? doc.data().exits : []);
-          }).catch(function(){ done(); });
-        }
+        try { localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
+        done();
       }
+      // Pre-download the next screen so it opens instantly.
+      window.addEventListener('load', function(){ try { var l=document.createElement('link'); l.rel='prefetch'; l.href='מערכת פגישונים דף 6.html'; document.head.appendChild(l); } catch(e){} });
     </script>
     <script>
       function pgGo(url){ window.location.href = url; return false; }

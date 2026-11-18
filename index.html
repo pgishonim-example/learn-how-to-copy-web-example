@@ -20,39 +20,15 @@
     <meta name="apple-mobile-web-app-title" content="פגישונים">
     <style>
         .start-body { padding: 20px; }
-        #remainBox { font-size: 1.35rem; }
-        #remainBox b { color: #18a76c; font-size: 1.9rem; }
-        .counts { text-align:center; color:#555; margin-bottom:10px; }
-        .counts .c-pill { display:inline-block; background:#eef3fb; border-radius:999px; padding:3px 12px; margin:0 4px; font-weight:700; }
-        .status-banner { text-align:center; font-weight:800; font-size:1.2rem; padding:13px; border-radius:14px; margin-bottom:14px; }
-        .status-banner.sb-out { background:#fff3e0; color:#c9781a; border:2px solid #f0c27a; }
-        .status-banner.sb-in { background:#e4ffef; color:#0f7a55; border:2px solid #9fe3c4; }
-        .qc { background:linear-gradient(135deg,#eef4ff,#f7faff); border:1px solid #d7e3f8; border-radius:16px; padding:16px; margin-bottom:18px; }
-        .qc h5 { margin:0 0 12px; }
-        .qc-row { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
-        .qc-field { flex:1; min-width:120px; }
+        .qc { background:linear-gradient(135deg,#eef4ff,#f7faff); border:1px solid #d7e3f8; border-radius:16px; padding:16px; margin-bottom:12px; }
+        .qc h5 { margin:0 0 14px; }
+        .qc-row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+        .qc-field { flex:1 1 140px; min-width:120px; }
+        .qc-field.full { flex:1 1 100%; }
         .qc-field label { font-weight:600; font-size:.9rem; display:block; margin-bottom:4px; }
         #qTime { font-size:1.6rem; font-weight:800; text-align:center; letter-spacing:2px; color:#223e9c; }
-        .sec-title { font-weight:800; margin:18px 0 10px; }
-        .ex-card { display:flex; gap:12px; align-items:center; border-radius:14px; padding:12px 14px; margin-bottom:10px; background:#fff; border:1px solid #e8edf5; box-shadow:0 2px 8px rgba(0,0,0,.05); border-right:7px solid #bbb; }
-        .ex-card.ex-out { border-right-color:#e8a33d; background:#fffaf0; }
-        .ex-card.ex-back { border-right-color:#18a76c; background:#f5fffa; }
-        .ex-card.ex-pend { border-right-color:#3b5fc7; background:#f4f8ff; }
-        .ex-badge { font-weight:800; font-size:.85rem; padding:6px 12px; border-radius:999px; white-space:nowrap; }
-        .ex-card.ex-out .ex-badge { background:#ffe6c2; color:#b5660f; }
-        .ex-card.ex-back .ex-badge { background:#c9f6e1; color:#0f7a55; }
-        .ex-card.ex-pend .ex-badge { background:#d6e4ff; color:#223e9c; }
-        .ex-main { flex:1; }
-        .ex-date { font-weight:700; color:#223e9c; }
-        .ex-times { font-size:1.05rem; margin:2px 0; }
-        .ex-times b { color:#111; }
-        .ex-reason { color:#888; font-size:.9rem; }
-        .ex-actions { display:flex; gap:6px; flex-direction:column; }
-        .ex-actions .btn { white-space:nowrap; }
+        #createBtn { width:100%; margin-top:6px; }
     </style>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js"></script>
 </head>
 <body class="">
 <div class="exit-pass-page ext-page">
@@ -60,38 +36,26 @@
         <div class="exit-pass-header">
             <div>
                 <h1 class="exit-pass-title">אישור יציאה</h1>
-                <div class="exit-pass-subtitle">הזינו סיסמה כדי להמשיך</div>
+                <div class="exit-pass-subtitle">מלאו את הפרטים ליצירת אישור</div>
             </div>
             <div class="exit-pass-brand">
                 <img src="./מערכת פגישונים_files/logo_pgishonim_full_white.png" alt="pgishonim">
             </div>
         </div>
         <div class="exit-pass-body">
-            <div id="setupNotice" class="alert alert-warning" style="display:none; margin:16px;">
-                המערכת עדיין לא חוברה למסד הנתונים.
-            </div>
-
-            <div id="pwStep" class="start-body">
-                <div class="alert alert-info text-center">הזינו את הסיסמה האישית שלכם</div>
-                <input type="text" id="pw" class="form-control form-control-lg" placeholder="הקלידו סיסמה" autocomplete="off" dir="rtl">
-                <div class="d-grid mt-3"><button id="pwBtn" class="btn btn-success btn-lg">המשך</button></div>
-                <div id="pwErr" class="text-danger text-center mt-3 fw-bold" style="display:none"></div>
-            </div>
-
-            <div id="resStep" class="start-body" style="display:none">
-                <h2 id="hello" class="text-center mb-2"></h2>
-                <div id="remainBox" class="text-center my-1"></div>
-                <div id="counts" class="counts"></div>
-                <div id="statusBanner" class="mb-3"></div>
-
+            <div class="start-body">
                 <div class="qc">
                     <h5>יצירת אישור יציאה</h5>
                     <div class="qc-row">
-                        <div class="qc-field" style="min-width:140px;">
+                        <div class="qc-field" style="min-width:150px;">
                             <label for="qName">שם</label>
                             <input type="text" id="qName" class="form-control" placeholder="שם התלמיד">
                         </div>
-                        <div class="qc-field" style="max-width:160px;">
+                        <div class="qc-field" style="max-width:120px;">
+                            <label for="qClass">כיתה</label>
+                            <input type="text" id="qClass" class="form-control" placeholder="כיתה">
+                        </div>
+                        <div class="qc-field" style="max-width:170px;">
                             <label for="qDate">תאריך</label>
                             <input type="date" id="qDate" class="form-control">
                         </div>
@@ -99,39 +63,14 @@
                             <label for="qTime">שעה</label>
                             <input type="text" id="qTime" class="form-control" inputmode="numeric" maxlength="5" placeholder="--:--">
                         </div>
-                        <div class="qc-field" style="max-width:110px;">
-                            <label for="qClass">כיתה</label>
-                            <input type="text" id="qClass" class="form-control" placeholder="כיתה">
-                        </div>
-                        <div class="qc-field">
+                        <div class="qc-field full">
                             <label for="qReason">סיבה</label>
                             <input type="text" id="qReason" class="form-control" placeholder="סיבת היציאה">
                         </div>
-                        <div class="qc-field" style="flex:0 0 auto;">
-                            <button id="createBtn" class="btn btn-success btn-lg">צור אישור</button>
-                        </div>
                     </div>
                     <div id="createErr" class="text-danger mt-2" style="display:none"></div>
+                    <button id="createBtn" class="btn btn-success btn-lg">צור אישור</button>
                 </div>
-
-                <div id="pendWrap" style="display:none">
-                    <div class="sec-title">אישורים ממתינים</div>
-                    <div id="pendList"></div>
-                </div>
-
-                <div id="historyWrap" style="display:none">
-                    <div class="sec-title">היסטוריית יציאות</div>
-                    <div id="historyList"></div>
-                </div>
-
-                <div class="text-center mt-4">
-                    <button type="button" id="backLink" class="btn btn-outline-secondary">התנתק / החלפת משתמש</button>
-                    <div class="mt-2"><a href="settings.html">הגדרות מנהל</a></div>
-                </div>
-            </div>
-
-            <div class="pass-footer" style="text-align:center; padding:12px;">
-                <a href="settings.html">הגדרות מנהל</a>
             </div>
         </div>
     </div>
@@ -139,120 +78,25 @@
 
 <script>
 (function () {
-    var cfg = window.firebaseConfig || {};
-    var connected = cfg.apiKey && cfg.apiKey.indexOf('PASTE') === -1;
-    var db = null;
-    if (connected) { try { firebase.initializeApp(cfg); db = firebase.firestore(); } catch (e) { connected = false; } }
-    if (!connected) { document.getElementById('setupNotice').style.display = 'block'; }
-
-    var CUR = { pw: null, data: null };
-    var pwBtn = document.getElementById('pwBtn');
-    var pwInput = document.getElementById('pw');
-
-    function esc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
     function two(n){ return ('0'+n).slice(-2); }
     function nowHHMM(){ var d=new Date(); return two(d.getHours())+':'+two(d.getMinutes()); }
     function todayISO(){ var d=new Date(); return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()); }
-    function showErr(m){ var e=document.getElementById('pwErr'); e.textContent=m; e.style.display='block'; }
 
-    function lookup() {
-        var pw = (pwInput.value || '').trim();
-        document.getElementById('pwErr').style.display = 'none';
-        if (!pw) { showErr('יש להזין סיסמה'); return; }
-        if (!connected) { showErr('המערכת עדיין לא חוברה למסד הנתונים'); return; }
-        pwBtn.disabled = true; pwBtn.textContent = 'בודק...';
-        db.collection('students').doc(pw).get().then(function (doc) {
-            pwBtn.disabled = false; pwBtn.textContent = 'המשך';
-            if (!doc.exists) { try { localStorage.removeItem('pg_remember'); } catch(e){} showErr('סיסמה שגויה'); return; }
-            CUR.pw = pw; CUR.data = doc.data();
-            try { localStorage.setItem('pg_remember', pw); } catch(e){}
-            var last = {}; try { last = JSON.parse(localStorage.getItem('pg_last_' + pw) || '{}') || {}; } catch(e){}
-            document.getElementById('pwStep').style.display = 'none';
-            document.getElementById('resStep').style.display = 'block';
-            document.getElementById('qName').value = (last.name != null && last.name !== '') ? last.name : (CUR.data.name || '');
-            document.getElementById('qClass').value = last.klass || '';
-            document.getElementById('qDate').value = todayISO();
-            document.getElementById('qTime').value = nowHHMM();
-            render();
-        }).catch(function () { pwBtn.disabled = false; pwBtn.textContent = 'המשך'; showErr('שגיאת חיבור'); });
-    }
+    // pre-fill name + class from last time (saved on THIS phone only)
+    var last = {}; try { last = JSON.parse(localStorage.getItem('pg_last') || '{}') || {}; } catch (e) {}
+    document.getElementById('qName').value = last.name || '';
+    document.getElementById('qClass').value = last.klass || '';
+    document.getElementById('qDate').value = todayISO();
+    document.getElementById('qTime').value = nowHHMM();
 
-    function reload() {
-        return db.collection('students').doc(CUR.pw).get().then(function (doc) {
-            if (doc.exists) { CUR.data = doc.data(); render(); }
-        });
-    }
+    // time field: numeric, auto-insert colon (type 1126 -> 11:26)
+    document.getElementById('qTime').addEventListener('input', function () {
+        var v = this.value.replace(/\D/g, '').slice(0, 4);
+        if (v.length >= 3) v = v.slice(0, 2) + ':' + v.slice(2);
+        this.value = v;
+    });
 
-    function render() {
-        var s = CUR.data || {};
-        var used = Number(s.usedLeaves) || 0, max = Number(s.maxLeaves) || 0;
-        var pending = (s.pending || []).slice();
-        var exits = (s.exits || []).slice();
-        var remaining = Math.max(0, max - used);
-        var canCreate = (used + pending.length) < max;
-
-        document.getElementById('hello').textContent = 'שלום ' + (s.name || '');
-        document.getElementById('remainBox').innerHTML = 'נותרו לך <b>' + remaining + '</b> יציאות';
-        document.getElementById('counts').innerHTML =
-            '<span class="c-pill">ניצלת: ' + used + '/' + max + '</span>'
-            + '<span class="c-pill">ממתינים: ' + pending.length + '</span>';
-
-        // current status (out = an exit that has not returned)
-        var lastOut = null;
-        exits.forEach(function (x) { if (!x.returnTime) lastOut = x; });
-        var sb = document.getElementById('statusBanner');
-        if (lastOut) { sb.className = 'mb-3 status-banner sb-out'; sb.innerHTML = '🔴 כרגע בחוץ · יצא ' + esc(lastOut.exitTime || lastOut.time || ''); }
-        else { sb.className = 'mb-3 status-banner sb-in'; sb.innerHTML = '🟢 נמצא/ת בבית הספר'; }
-
-        // create button state
-        var cBtn = document.getElementById('createBtn'), cErr = document.getElementById('createErr');
-        if (canCreate) { cBtn.disabled = false; cErr.style.display = 'none'; }
-        else { cBtn.disabled = true; cErr.textContent = 'הגעת למקסימום (' + max + '). הסר אישור ממתין או נצל/חזור כדי ליצור חדש.'; cErr.style.display = 'block'; }
-
-        // pending list
-        var pWrap = document.getElementById('pendWrap'), pList = document.getElementById('pendList');
-        if (pending.length) {
-            pWrap.style.display = 'block';
-            pList.innerHTML = pending.map(function (p) {
-                return '<div class="ex-card ex-pend">'
-                    + '<span class="ex-badge">ממתין</span>'
-                    + '<div class="ex-main"><div class="ex-times">שעה <b>' + esc(p.time || '') + '</b>'
-                    + (p.klass ? ' · כיתה <b>' + esc(p.klass) + '</b>' : '') + '</div>'
-                    + (p.reason ? '<div class="ex-reason">' + esc(p.reason) + '</div>' : '') + '</div>'
-                    + '<div class="ex-actions">'
-                    + '<button class="btn btn-sm btn-success" data-leave="' + esc(p.id) + '">צא עכשיו</button>'
-                    + '<button class="btn btn-sm btn-outline-primary" data-view="' + esc(p.id) + '">צפה</button>'
-                    + '<button class="btn btn-sm btn-outline-danger" data-remove="' + esc(p.id) + '">הסר</button>'
-                    + '</div></div>';
-            }).join('');
-        } else { pWrap.style.display = 'none'; pList.innerHTML = ''; }
-
-        // history (completed exits)
-        var hWrap = document.getElementById('historyWrap'), hList = document.getElementById('historyList');
-        var done = exits.slice().reverse();
-        done.forEach(function (x, i) { if (!x.id) x.id = 'x' + i + '_' + (x.at || x.time || ''); });
-        if (done.length) {
-            hWrap.style.display = 'block';
-            hList.innerHTML = done.map(function (x) {
-                var isBack = !!x.returnTime;
-                var times = 'יצא <b>' + esc(x.exitTime || x.time || '') + '</b>'
-                    + (isBack ? ' · חזר <b>' + esc(x.returnTime) + '</b>' : '');
-                return '<div class="ex-card ' + (isBack ? 'ex-back' : 'ex-out') + '">'
-                    + '<span class="ex-badge">' + (isBack ? '✓ חזר' : '● בחוץ') + '</span>'
-                    + '<div class="ex-main"><div class="ex-date">' + esc(x.date || '') + (x.klass ? ' · כיתה ' + esc(x.klass) : '') + '</div>'
-                    + '<div class="ex-times">' + times + '</div>'
-                    + (x.reason ? '<div class="ex-reason">' + esc(x.reason) + '</div>' : '') + '</div>'
-                    + '<div class="ex-actions"><button class="btn btn-sm btn-outline-primary" data-view-exit="' + esc(x.id) + '">צפה</button></div></div>';
-            }).join('');
-        } else { hWrap.style.display = 'none'; hList.innerHTML = ''; }
-    }
-
-    // ----- actions -----
-    function createPending() {
-        var s = CUR.data || {};
-        var used = Number(s.usedLeaves) || 0, max = Number(s.maxLeaves) || 0;
-        var pending = (s.pending || []);
-        if ((used + pending.length) >= max) return;
+    function create() {
         var name = (document.getElementById('qName').value || '').trim();
         var klass = (document.getElementById('qClass').value || '').trim();
         var reason = (document.getElementById('qReason').value || '').trim();
@@ -263,119 +107,36 @@
             return;
         }
         cErr.style.display = 'none';
-        var t = (document.getElementById('qTime').value || '').trim() || nowHHMM();
         var now = new Date();
+        var t = (document.getElementById('qTime').value || '').trim() || nowHHMM();
         var dv = (document.getElementById('qDate').value || '').trim();
         var dm = dv.match(/^(\d{4})-(\d{2})-(\d{2})$/);
         var dateDisp = dm ? (dm[3] + '/' + dm[2] + '/' + dm[1])
                           : (two(now.getDate()) + '/' + two(now.getMonth() + 1) + '/' + now.getFullYear());
-        var p = {
-            id: 'p' + Date.now() + Math.random().toString(36).slice(2, 7),
-            date: dateDisp,
-            time: t, reason: reason, klass: klass, name: name, createdAt: now.toISOString()
-        };
-        // remember name + class for next time
-        try { localStorage.setItem('pg_last_' + CUR.pw, JSON.stringify({ name: name, klass: klass })); } catch(e){}
-        // optimistic: show it instantly, write in the background
-        CUR.data.pending = (s.pending || []).slice().concat([p]);
-        document.getElementById('qReason').value = '';
-        document.getElementById('qDate').value = todayISO();
-        document.getElementById('qTime').value = nowHHMM();
-        render();
-        db.collection('students').doc(CUR.pw).update({
-            pending: firebase.firestore.FieldValue.arrayUnion(p)
-        }).catch(function () {
-            CUR.data.pending = (CUR.data.pending || []).filter(function (x) { return x.id !== p.id; });
-            render(); alert('שגיאה ביצירה');
-        });
-    }
 
-    function removePending(id) {
-        var pending = (CUR.data.pending || []).filter(function (p) { return p.id !== id; });
-        db.collection('students').doc(CUR.pw).update({ pending: pending }).then(reload).catch(function(){ alert('שגיאה'); });
-    }
+        // remember name + class for next time (this phone only)
+        try { localStorage.setItem('pg_last', JSON.stringify({ name: name, klass: klass })); } catch (e) {}
 
-    function leavePending(id) {
-        var p = (CUR.data.pending || []).filter(function (x) { return x.id === id; })[0];
-        if (!p) return;
-        var s = CUR.data || {};
+        // everything the pass screen needs — kept on the phone, sent nowhere
         try {
             localStorage.setItem('pg_passData', JSON.stringify({
-                student: p.name || s.name || '', klass: p.klass || '', taz: CUR.pw,
-                date: p.date, time: p.time, reason: p.reason, pendingId: p.id,
-                pending: (s.pending || []), exits: (s.exits || []), usedLeaves: (Number(s.usedLeaves) || 0)
+                student: name, klass: klass, date: dateDisp, time: t,
+                reason: reason, recurrence: 'חד פעמי'
             }));
         } catch (e) {}
         window.location.href = 'מערכת פגישונים דף 2.html';
     }
 
-    // open any leave as the full release screen (view only)
-    function openPassView(o) {
-        try {
-            localStorage.setItem('pg_passData', JSON.stringify({
-                student: o.name || (CUR.data && CUR.data.name) || '', klass: o.klass || '', taz: CUR.pw,
-                date: o.date || '', time: o.time || '', reason: o.reason || '',
-                exitTime: o.exitTime || '', returnTime: o.returnTime || '',
-                viewOnly: true
-            }));
-        } catch (e) {}
-        window.location.href = 'מערכת פגישונים דף 2.html';
-    }
-
-    document.getElementById('pendList').addEventListener('click', function (e) {
-        var btn = e.target.closest('button'); if (!btn) return;
-        if (btn.getAttribute('data-remove')) removePending(btn.getAttribute('data-remove'));
-        else if (btn.getAttribute('data-leave')) leavePending(btn.getAttribute('data-leave'));
-        else if (btn.getAttribute('data-view')) {
-            var pid = btn.getAttribute('data-view');
-            var p = (CUR.data.pending || []).filter(function (o) { return o.id === pid; })[0];
-            if (p) openPassView(p);
-        }
-    });
-
-    document.getElementById('historyList').addEventListener('click', function (e) {
-        var btn = e.target.closest('button'); if (!btn) return;
-        var exid = btn.getAttribute('data-view-exit'); if (!exid) return;
-        var x = (CUR.data.exits || []).filter(function (o) { return o.id === exid; })[0];
-        if (x) openPassView(x);
-    });
-
-    document.getElementById('createBtn').onclick = createPending;
-
-    // time field: numeric, auto-insert colon (type 1126 -> 11:26)
-    document.getElementById('qTime').addEventListener('input', function () {
-        var v = this.value.replace(/\D/g, '').slice(0, 4);
-        if (v.length >= 3) v = v.slice(0, 2) + ':' + v.slice(2);
-        this.value = v;
-    });
-
-    pwBtn.onclick = lookup;
-    pwInput.addEventListener('keydown', function (e) { if (e.key === 'Enter') lookup(); });
-    document.getElementById('backLink').onclick = function (e) {
-        e.preventDefault();
-        try { localStorage.removeItem('pg_remember'); } catch(err){}
-        document.getElementById('resStep').style.display = 'none';
-        document.getElementById('pwStep').style.display = 'block';
-        document.getElementById('pwErr').style.display = 'none';
-        pwInput.value = ''; CUR = { pw: null, data: null };
-    };
-
-    // remember the logged-in student — skip the password screen next time
-    (function () {
-        var remembered = null; try { remembered = localStorage.getItem('pg_remember'); } catch(e){}
-        if (connected && remembered) { pwInput.value = remembered; lookup(); }
-    })();
+    document.getElementById('createBtn').onclick = create;
+    document.getElementById('qReason').addEventListener('keydown', function (e) { if (e.key === 'Enter') create(); });
 })();
 
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
 }
-// Safe speed-up: quietly pre-download the next screens so navigation is quicker (does NOT change saving).
+// quietly pre-download the next screen so it opens instantly
 window.addEventListener('load', function () {
-    var pages = ['מערכת פגישונים דף 2.html', 'מערכת פגישונים דף 4.html'];
-    for (var i = 0; i < pages.length; i++) {
-        try { var l = document.createElement('link'); l.rel = 'prefetch'; l.href = pages[i]; document.head.appendChild(l); } catch (e) {}
-    }
+    try { var l = document.createElement('link'); l.rel = 'prefetch'; l.href = 'מערכת פגישונים דף 2.html'; document.head.appendChild(l); } catch (e) {}
 });
 </script>
 </body>

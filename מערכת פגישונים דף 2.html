@@ -21,53 +21,18 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <link rel="apple-touch-icon" sizes="180x180" href="https://pgishonim.com/M/assets/images/apple-touch-icon.png?v=1788903552">
 
     <title>מערכת פגישונים</title>
-    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script defer src="firebase-config.js"></script>
     <script>
-      // Firebase loads in the BACKGROUND so the pass shows instantly; it is ready well before you tap "נעל אישור".
-      var _pgdb = null;
-      function pgInit(){ try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); } } catch (e) {} }
-      document.addEventListener('DOMContentLoaded', pgInit);
-      // Safe speed-up: pre-download the next screen (does NOT change saving).
-      window.addEventListener('load', function(){ try { var l=document.createElement('link'); l.rel='prefetch'; l.href='מערכת פגישונים דף 4.html'; document.head.appendChild(l); } catch(e){} });
-      // Move on the instant the write is acknowledged (fast now that persistence is gone); 3s cap only guards a network hang.
-      function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 3000); }
-      // Commit the exit: count it + log it in the database, ONLY when approved here.
+      // Local-only: tapping "נעל אישור" stamps the exit time on THIS phone and moves on. Nothing is sent anywhere.
       function pgCommitExit(btn){
         if (btn) { btn.disabled = true; }
         var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
-        var id = d.taz;
         var now = new Date();
         var hh = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
-        function go(){ try { d.exitTime = hh; localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} window.location.href = 'מערכת פגישונים דף 4.html'; }
-        if (!_pgdb) { pgInit(); }
-        if (!_pgdb || !id) { go(); return; }
-        function commit(pending, exits, usedBase){
-          pending = (pending || []).slice(); exits = (exits || []).slice();
-          var p = null;
-          if (d.pendingId) { for (var i = 0; i < pending.length; i++) { if (pending[i].id === d.pendingId) { p = pending[i]; pending.splice(i, 1); break; } } }
-          exits.push({
-            id: (p && p.id) || ('e' + Date.now()),
-            date: (p && p.date) || d.date || '',
-            klass: (p && p.klass) || d.klass || '',
-            time: (p && p.time) || d.time || hh,
-            reason: (p && p.reason) || d.reason || '',
-            exitTime: hh, returnTime: '', status: 'out', at: now.toISOString()
-          });
-          var used = (Number(usedBase) || 0) + 1;
-          d.pending = pending; d.exits = exits; d.usedLeaves = used;  // pass new state to the next page
-          pgNav(_pgdb.collection('students').doc(id).update({ pending: pending, exits: exits, usedLeaves: used }), go);
-        }
-        if (d.exits !== undefined || d.pending !== undefined || d.usedLeaves !== undefined) {
-          commit(d.pending, d.exits, d.usedLeaves);   // instant — data came from the previous screen
-        } else {
-          _pgdb.collection('students').doc(id).get().then(function (doc) {
-            var data = doc.exists ? doc.data() : {};
-            commit(data.pending, data.exits, data.usedLeaves);
-          }).catch(go);
-        }
+        try { d.exitTime = hh; localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
+        window.location.href = 'מערכת פגישונים דף 4.html';
       }
+      // Pre-download the next screen so it opens instantly.
+      window.addEventListener('load', function(){ try { var l=document.createElement('link'); l.rel='prefetch'; l.href='מערכת פגישונים דף 4.html'; document.head.appendChild(l); } catch(e){} });
     </script>
     <script>
       function pgGo(url){ window.location.href = url; return false; }
