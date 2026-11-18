@@ -158,40 +158,16 @@
         <div class="step-head"><div class="step-num">3</div><h2>בונים על זה בעצמנו</h2></div>
         <p>עכשיו פותחים את ה-<code>.html</code> השמור בכל עורך טקסט ומשנים אותו: <b>שומרים על המראה</b> היפה, <b>מוחקים</b> את החלקים שצריכים את השרת המקורי, ומוסיפים קוד משלנו. ככה הדף הופך מ"צילום" של אתר אחר למשהו חי שאנחנו שולטים בו.</p>
         <div class="fig shots" id="shots-screens">
-            <!-- real screenshots are added here if captured; the SVG mockups below always render -->
             <figure>
-                <svg viewBox="0 0 200 380" width="200" role="img" aria-label="מסך יצירת אישור">
-                    <rect x="2" y="2" width="196" height="376" rx="26" fill="#0b1f4d"/>
-                    <rect x="12" y="14" width="176" height="352" rx="16" fill="#f3f6fd"/>
-                    <rect x="12" y="14" width="176" height="64" rx="16" fill="#223e9c"/>
-                    <text x="26" y="44" fill="#fff" font-family="Rubik" font-size="13" font-weight="700">אישור יציאה</text>
-                    <text x="26" y="62" fill="#cdd9fb" font-family="Rubik" font-size="9">מלאו את הפרטים</text>
-                    <rect x="26" y="96" width="148" height="30" rx="7" fill="#fff" stroke="#d7e0f2"/><text x="36" y="115" fill="#8a93a6" font-size="10" font-family="Rubik">שם התלמיד</text>
-                    <rect x="26" y="134" width="70" height="30" rx="7" fill="#fff" stroke="#d7e0f2"/><text x="36" y="153" fill="#8a93a6" font-size="10" font-family="Rubik">כיתה</text>
-                    <rect x="104" y="134" width="70" height="30" rx="7" fill="#fff" stroke="#d7e0f2"/><text x="114" y="153" fill="#8a93a6" font-size="10" font-family="Rubik">שעה</text>
-                    <rect x="26" y="172" width="148" height="30" rx="7" fill="#fff" stroke="#d7e0f2"/><text x="36" y="191" fill="#8a93a6" font-size="10" font-family="Rubik">סיבת היציאה</text>
-                    <rect x="26" y="214" width="148" height="34" rx="9" fill="#18a76c"/><text x="100" y="236" fill="#fff" font-size="12" font-weight="700" font-family="Rubik" text-anchor="middle">צור אישור</text>
-                </svg>
-                <figcaption class="cap">מסך יצירה</figcaption>
+                <img src="assets/guide/create.png" alt="מסך יצירת אישור" loading="lazy">
+                <figcaption class="cap">מסך היצירה — ממלאים פרטים</figcaption>
             </figure>
             <figure>
-                <svg viewBox="0 0 200 380" width="200" role="img" aria-label="מסך האישור">
-                    <rect x="2" y="2" width="196" height="376" rx="26" fill="#0b1f4d"/>
-                    <rect x="12" y="14" width="176" height="352" rx="16" fill="#f3f6fd"/>
-                    <rect x="12" y="14" width="176" height="64" rx="16" fill="#223e9c"/>
-                    <text x="26" y="44" fill="#fff" font-family="Rubik" font-size="13" font-weight="700">אישור יציאה</text>
-                    <text x="26" y="62" fill="#cdd9fb" font-family="Rubik" font-size="9">הציגו לשומר</text>
-                    <g font-family="Rubik" font-size="9">
-                        <rect x="26" y="92" width="70" height="34" rx="7" fill="#fff" stroke="#e2e8f4"/><text x="34" y="106" fill="#8a93a6">תלמיד</text><text x="34" y="120" fill="#1b2336" font-weight="700">ישראל</text>
-                        <rect x="104" y="92" width="70" height="34" rx="7" fill="#fff" stroke="#e2e8f4"/><text x="112" y="106" fill="#8a93a6">כיתה</text><text x="112" y="120" fill="#1b2336" font-weight="700">י3</text>
-                    </g>
-                    <circle cx="100" cy="190" r="34" fill="#eafaf2" stroke="#9fe3c4"/><text x="100" y="196" text-anchor="middle" font-size="26">✓</text>
-                    <rect x="40" y="250" width="120" height="22" rx="11" fill="#eafaf2" stroke="#9fe3c4"/><text x="100" y="265" text-anchor="middle" fill="#0f7a55" font-size="10" font-weight="700" font-family="Rubik">אושר</text>
-                    <rect x="26" y="300" width="148" height="34" rx="9" fill="#18a76c"/><text x="100" y="322" fill="#fff" font-size="11" font-weight="700" font-family="Rubik" text-anchor="middle">נעל אישור</text>
-                </svg>
-                <figcaption class="cap">מסך האישור</figcaption>
+                <img src="assets/guide/pass.png" alt="מסך האישור" loading="lazy">
+                <figcaption class="cap">מסך האישור — מוכן להצגה</figcaption>
             </figure>
         </div>
+        <p class="cap" style="text-align:center">צילומי מסך אמיתיים מתוך הדוגמה</p>
     </div>
 
     <!-- STEP 4 -->
@@ -230,6 +206,16 @@ var d = JSON.parse(localStorage.getItem('pg_passData'));</code></pre>
                     <text x="258" y="100" fill="#667085" font-size="11" font-weight="400">מיידי · אותו מסך</text>
                 </g>
             </svg>
+        </div>
+        <div class="fig shots">
+            <figure>
+                <img src="assets/guide/out.png" alt="מצב: יצא מבית הספר" loading="lazy">
+                <figcaption class="cap">אחרי "נעל אישור" — יצא מבית הספר</figcaption>
+            </figure>
+            <figure>
+                <img src="assets/guide/back.png" alt="מצב: חזר לבית הספר" loading="lazy">
+                <figcaption class="cap">אחרי החזרה — חזר לבית הספר</figcaption>
+            </figure>
         </div>
     </div>
 
