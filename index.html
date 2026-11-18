@@ -124,7 +124,10 @@
                     <div id="historyList"></div>
                 </div>
 
-                <div class="text-center mt-3"><a href="#" id="backLink">החלפת משתמש</a> · <a href="settings.html">הגדרות מנהל</a></div>
+                <div class="text-center mt-4">
+                    <button type="button" id="backLink" class="btn btn-outline-secondary">התנתק / החלפת משתמש</button>
+                    <div class="mt-2"><a href="settings.html">הגדרות מנהל</a></div>
+                </div>
             </div>
 
             <div class="pass-footer" style="text-align:center; padding:12px;">
@@ -233,7 +236,7 @@
             hList.innerHTML = done.map(function (x) {
                 var isBack = !!x.returnTime;
                 var times = 'יצא <b>' + esc(x.exitTime || x.time || '') + '</b>'
-                    + (isBack ? ' · חזר <b>' + esc(x.returnTime) + '</b>' : ' · <span style="color:#c9781a;font-weight:700;">עדיין לא חזר</span>');
+                    + (isBack ? ' · חזר <b>' + esc(x.returnTime) + '</b>' : '');
                 return '<div class="ex-card ' + (isBack ? 'ex-back' : 'ex-out') + '">'
                     + '<span class="ex-badge">' + (isBack ? '✓ חזר' : '● בחוץ') + '</span>'
                     + '<div class="ex-main"><div class="ex-date">' + esc(x.date || '') + (x.klass ? ' · כיתה ' + esc(x.klass) : '') + '</div>'

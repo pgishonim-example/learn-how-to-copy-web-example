@@ -132,8 +132,8 @@
             <div class="search-box"><input id="stuSearch" placeholder="חיפוש לפי שם או סיסמה..."></div>
             <div style="overflow-x:auto;">
                 <table class="stu">
-                    <thead><tr><th>שם</th><th>סיסמה</th><th>מכסה</th><th>נוצל</th><th>נותרו</th><th></th></tr></thead>
-                    <tbody id="stuBody"><tr><td colspan="6" class="muted">טוען...</td></tr></tbody>
+                    <thead><tr><th>שם</th><th>סיסמה</th><th>מכסה</th><th>החודש</th><th>סה״כ</th><th>נותרו</th><th></th></tr></thead>
+                    <tbody id="stuBody"><tr><td colspan="7" class="muted">טוען...</td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -266,7 +266,7 @@
 
     // ---- load + render everything ----
     function loadStudents() {
-        document.getElementById('stuBody').innerHTML = '<tr><td colspan="6" class="muted">טוען...</td></tr>';
+        document.getElementById('stuBody').innerHTML = '<tr><td colspan="7" class="muted">טוען...</td></tr>';
         document.getElementById('outBoard').innerHTML = '<div class="muted">טוען...</div>';
         db.collection('students').get().then(function (snap) {
             allStudents = [];
@@ -274,7 +274,7 @@
             allStudents.sort(function(a,b){ return String(a.data.name||'').localeCompare(String(b.data.name||''),'he'); });
             renderStats(); renderOutBoard(); renderTable();
         }).catch(function () {
-            document.getElementById('stuBody').innerHTML = '<tr><td colspan="6" class="text-danger">שגיאת טעינה</td></tr>';
+            document.getElementById('stuBody').innerHTML = '<tr><td colspan="7" class="text-danger">שגיאת טעינה</td></tr>';
         });
     }
 
@@ -330,6 +330,17 @@
         }).join('');
     }
 
+    function usedThisMonth(exits) {
+        var now = new Date(), y = now.getFullYear(), m = now.getMonth() + 1, c = 0;
+        (exits || []).forEach(function (x) {
+            var yy = null, mm = null;
+            if (x.at) { var dt = new Date(x.at); if (!isNaN(dt)) { yy = dt.getFullYear(); mm = dt.getMonth() + 1; } }
+            if (yy === null && x.date) { var pp = String(x.date).split('/'); if (pp.length === 3) { mm = Number(pp[1]); yy = Number(pp[2]); } }
+            if (yy === y && mm === m) c++;
+        });
+        return c;
+    }
+
     function renderTable() {
         var q = (document.getElementById('stuSearch').value || '').trim().toLowerCase();
         var tb = document.getElementById('stuBody');
@@ -337,14 +348,16 @@
             if (!q) return true;
             return String(st.data.name||'').toLowerCase().indexOf(q) !== -1 || String(st.id).toLowerCase().indexOf(q) !== -1;
         });
-        if (!list.length) { tb.innerHTML = '<tr><td colspan="6" class="muted">' + (q ? 'לא נמצאו תוצאות' : 'אין תלמידים עדיין') + '</td></tr>'; return; }
+        if (!list.length) { tb.innerHTML = '<tr><td colspan="7" class="muted">' + (q ? 'לא נמצאו תוצאות' : 'אין תלמידים עדיין') + '</td></tr>'; return; }
         tb.innerHTML = list.map(function (st) {
             var s = st.data;
             var max = Number(s.maxLeaves) || 0, used = Number(s.usedLeaves) || 0, rem = Math.max(0, max - used);
+            var month = usedThisMonth(s.exits);
             return '<tr data-id="' + esc(st.id) + '">'
                 + '<td>' + esc(s.name) + '</td>'
                 + '<td dir="ltr">' + esc(st.id) + '</td>'
                 + '<td>' + max + '</td>'
+                + '<td><b>' + month + '</b></td>'
                 + '<td>' + used + '</td>'
                 + '<td><span class="pill ' + (rem > 0 ? 'ok' : 'no') + '">' + rem + '</span></td>'
                 + '<td class="row-actions" style="white-space:nowrap;">'
@@ -427,7 +440,7 @@
             body.innerHTML = exits.map(function (x) {
                 var isBack = !!x.returnTime;
                 var times = 'יצא <b>' + esc(x.time || x.exitTime || '') + '</b>'
-                    + (isBack ? ' · חזר <b>' + esc(x.returnTime) + '</b>' : ' · <span style="color:#c9781a;font-weight:700;">עדיין לא חזר</span>');
+                    + (isBack ? ' · חזר <b>' + esc(x.returnTime) + '</b>' : '');
                 return '<div class="ex-card ' + (isBack ? 'ex-back' : 'ex-out') + '">'
                     + '<span class="ex-badge">' + (isBack ? '✓ חזר' : '● בחוץ') + '</span>'
                     + '<div class="ex-main"><div class="ex-date">' + esc(x.date || '') + '</div>'
