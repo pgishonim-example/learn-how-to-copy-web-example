@@ -14,7 +14,7 @@
     <style>
         :root{ --blue:#223e9c; --ink:#1b2336; --muted:#5a6b8c; --line:#e2e8f4; }
         *{ box-sizing:border-box; }
-        html,body{ height:100%; }
+        html,body{ height:100%; overflow-x:hidden; }
         body{
             margin:0; background:linear-gradient(180deg,#223e9c,#17295f);
             font-family:'Rubik','Segoe UI',Arial,sans-serif; color:#1b2336;
@@ -35,6 +35,7 @@
             padding:6px 12px; border-radius:999px; font-size:.84rem; font-weight:600;
         }
         .terms{
+            flex:1 1 auto; min-height:0;
             padding:18px 22px; overflow-y:auto; line-height:1.7; font-size:.96rem; color:#2a3550;
             -webkit-overflow-scrolling:touch;
         }
