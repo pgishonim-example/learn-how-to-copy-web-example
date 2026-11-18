@@ -36,10 +36,27 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         var hh = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
         function go(){ try { d.exitTime = hh; localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} window.location.href = 'מערכת פגישונים דף 4.html'; }
         if (!_pgdb || !id) { go(); return; }
-        _pgdb.collection('students').doc(id).update({
-          usedLeaves: firebase.firestore.FieldValue.increment(1),
-          exits: firebase.firestore.FieldValue.arrayUnion({ at: now.toISOString(), date: d.date || '', klass: d.klass || '', time: hh, reason: d.reason || '', returnTime: '', status: 'out' })
-        }).then(go).catch(function(){ if (btn) { btn.disabled = false; btn.textContent = 'נעל אישור'; } alert('שגיאה בעדכון מסד הנתונים'); });
+        var ref = _pgdb.collection('students').doc(id);
+        ref.get().then(function (doc) {
+          if (!doc.exists) { go(); return; }
+          var data = doc.data();
+          var pending = (data.pending || []).slice();
+          var exits = (data.exits || []).slice();
+          var p = null;
+          if (d.pendingId) { for (var i = 0; i < pending.length; i++) { if (pending[i].id === d.pendingId) { p = pending[i]; pending.splice(i, 1); break; } } }
+          exits.push({
+            id: (p && p.id) || ('e' + Date.now()),
+            date: (p && p.date) || d.date || '',
+            klass: (p && p.klass) || d.klass || '',
+            time: (p && p.time) || d.time || hh,
+            reason: (p && p.reason) || d.reason || '',
+            exitTime: hh, returnTime: '', status: 'out', at: now.toISOString()
+          });
+          var used = (Number(data.usedLeaves) || 0) + 1;
+          ref.update({ pending: pending, exits: exits, usedLeaves: used })
+            .then(go)
+            .catch(function () { if (btn) { btn.disabled = false; btn.textContent = 'נעל אישור'; } alert('שגיאה בעדכון מסד הנתונים'); });
+        }).catch(function () { if (btn) { btn.disabled = false; btn.textContent = 'נעל אישור'; } alert('שגיאה בעדכון מסד הנתונים'); });
       }
     </script>
     <script>
