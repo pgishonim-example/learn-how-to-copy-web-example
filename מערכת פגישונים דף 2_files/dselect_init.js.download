@@ -1,0 +1,119 @@
+function dselectInit() {
+  var select_box_elements = document.getElementsByClassName('dselect');
+
+  for (var i = 0; i < select_box_elements.length; i++) {
+    const selectedSelect = select_box_elements[i];
+
+    if (selectedSelect.tagName !== 'SELECT') {
+      continue;
+    }
+
+    const ds = dselect(selectedSelect, {
+      search: true,
+      clearable: true
+    });
+  }
+}
+
+dselectInit();
+
+// Fit an open list to the screen. Popper puts the menu below the toggle, or above it when only
+// that side has room; when neither side has room for the whole menu (a multi-select's toggle grows
+// with every pick) it stays below and runs off the bottom of the screen. Shrink the list to the
+// roomier side and let Popper place it again. The height is set !important because
+// dselect-custom.css caps the list with !important, which a plain inline max-height loses to.
+// A page that changes an open list's options (a search the server answers) calls it again with
+// replace: Popper placed the menu for its old height, so it is placed again before it is measured.
+function dselectFitMenu(wrapper, replace) {
+  const menu = wrapper.querySelector('.dropdown-menu');
+  const items = menu && menu.querySelector('.dselect-items');
+  if (!items) return;
+  items.style.removeProperty('max-height');
+  const btn = wrapper.querySelector('.form-select');
+  if (!btn) return;
+  menu.style.minWidth = btn.offsetWidth + 'px';
+  if (replace) {
+    const placed = window.bootstrap && bootstrap.Dropdown.getInstance(btn);
+    if (placed) placed.update();
+  }
+  requestAnimationFrame(function () {
+    const menuRect = menu.getBoundingClientRect();
+    const viewportH = window.innerHeight;
+    if (menuRect.top >= 0 && menuRect.bottom <= viewportH) return;
+    const btnRect = btn.getBoundingClientRect();
+    const room = Math.max(btnRect.top, viewportH - btnRect.bottom) - 10;
+    const itemsH = items.getBoundingClientRect().height;
+    const chrome = menuRect.height - itemsH;
+    items.style.setProperty('max-height', Math.max(150, Math.min(itemsH, room - chrome)) + 'px', 'important');
+    const dropdown = window.bootstrap && bootstrap.Dropdown.getInstance(btn);
+    if (dropdown) dropdown.update();
+  });
+}
+
+// A list opened while its modal is still sliding in is placed against the moving dialog: the
+// dialog's transform makes it the containing block of the fixed list, so Popper measures from it.
+// When the slide ends the same numbers are read from the screen's edge, and the list lands as far
+// from its field as the dialog is from that edge. showModal() reports a modal shown at once since
+// 06/11/2026 while the CSS still plays the 300ms slide, so a list a page opens on shown.bs.modal
+// (the library's lending dialog) opens during it. Place and fit the list again when the slide ends.
+function dselectRefitAfterModalSlide(wrapper) {
+  const dialog = wrapper.closest('.modal-dialog');
+  if (!dialog || getComputedStyle(dialog).transform === 'none') return;
+  const btn = wrapper.querySelector('.form-select');
+  dialog.addEventListener('transitionend', function settled(e) {
+    if (e.target !== dialog || e.propertyName !== 'transform') return;
+    dialog.removeEventListener('transitionend', settled);
+    if (btn && btn.getAttribute('aria-expanded') === 'true') dselectFitMenu(wrapper, true);
+  });
+}
+
+document.addEventListener('shown.bs.dropdown', function (e) {
+  const wrapper = e.target.closest('.dselect-wrapper');
+  if (!wrapper) return;
+  dselectFitMenu(wrapper);
+  dselectRefitAfterModalSlide(wrapper);
+});
+
+document.addEventListener('hidden.bs.dropdown', function (e) {
+  const wrapper = e.target.closest('.dselect-wrapper');
+  if (!wrapper) return;
+  const items = wrapper.querySelector('.dselect-items');
+  if (items) items.style.removeProperty('max-height');
+});
+
+$(document).ready(function () {
+  $(".dselect").each(function () {
+    $(this).on("change", function () {
+      // "select all" is for a multiple <select>. In a single one the loop below left the last option
+      // chosen, so a filter's own "all" (live.php's status, items and dates) landed on that option.
+      if (!this.multiple) return;
+      if ($(this).data('dselectAllBusy')) return;
+      // A multiple <select> returns an array from .val(), so comparing it directly
+      // to "all" was always false and "select all" never fired for multi-selects.
+      const dselectVal = $(this).val();
+      const dselectHasAll = Array.isArray(dselectVal) && dselectVal.includes("all");
+      if (dselectHasAll) {
+        $(this).data('dselectAllBusy', true);
+        $(this).find("option").each(function () {
+          if (this.value !== "all" && this.value !== "") {
+            this.selected = true;
+          } else {
+            this.selected = false;
+          }
+        });
+        this.dispatchEvent(new Event("change"));
+        const selectEl = this;
+        setTimeout(() => {
+          const wrapper = $(selectEl).next('.dselect-wrapper');
+          const toggleBtn = wrapper.find('.form-select');
+          if (toggleBtn.length && toggleBtn.attr('aria-expanded') === 'true') {
+            toggleBtn.dropdown('hide');
+          }
+          $(selectEl).data('dselectAllBusy', false);
+        }, 100);
+      }
+    });
+  });
+
+  dselectInit();
+});

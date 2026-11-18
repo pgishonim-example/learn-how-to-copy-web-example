@@ -1,0 +1,1273 @@
+:root {
+    --ink: #0b1624;
+    --muted: #5c6775;
+    --panel: #ffffff;
+    --accent: #18a76c;
+    --accent-dark: #0f7a55;
+    --soft: #f2f6fb;
+    --shadow: 0 24px 60px rgba(8, 20, 35, 0.38);
+    --radius: 24px;
+}
+
+body {
+    /* background: radial-gradient(circle at 12% 8%, #e8f1ff 0%, #f6faff 45%, #eef7f3 100%); */
+    min-height: 100vh;
+    color: var(--ink);
+}
+
+.exit-pass-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px 36px;
+    position: relative;
+    overflow: hidden;
+}
+
+.exit-pass-page::before,
+.exit-pass-page::after {
+    display: none;
+}
+
+.exit-pass-card {
+    position: relative;
+    width: 100%;
+    max-width: 560px;
+    min-height: min(88vh, 700px);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    /* backwards, not both: a held translateY(0) scale(1) would make the card the containing
+       block of a dselect's fixed list (the kiosk and exit pages) and shift it (PG-454). */
+    animation: cardAppear .6s ease backwards;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+@keyframes cardAppear {
+    from { opacity: 0; transform: translateY(30px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.exit-pass-body {
+    background: var(--panel);
+}
+
+.exit-pass-header {
+    padding: 24px 22px 36px;
+    background: linear-gradient(135deg, #152d5a 0%, #3b5fc7 50%, #152d5a 100%);
+    color: #fff;
+    text-align: center;
+    position: relative;
+    z-index: 9999;
+    border-radius: 24px 24px 0 0;
+}
+
+.exit-pass-header::after {
+    content: "";
+    position: absolute;
+    left: 10%;
+    right: 10%;
+    bottom: -22px;
+    height: 46px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.15), rgba(59, 95, 199, 0.25));
+    filter: blur(4px);
+    opacity: 0.9;
+}
+
+.exit-pass-title {
+    letter-spacing: 0.4px;
+    font-size: clamp(1.2rem, 2.5vw, 1.55rem);
+    margin: 0;
+    color: #ffffff;
+    text-shadow: 0 2px 12px rgba(34, 62, 156, 0.5);
+}
+
+.exit-pass-subtitle {
+    color: #d7e6f5;
+    font-size: clamp(0.85rem, 2.2vw, 0.98rem);
+    margin: 6px 0 0;
+}
+
+.exit-pass-brand img {
+    max-width: 140px;
+    height: auto;
+    margin-top: 10px;
+}
+
+.exit-pass-body {
+    padding: 18px 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    flex: 1 1 auto;
+}
+
+.exit-pass-body .step-one,
+.exit-pass-body .step-two {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1 1 auto;
+}
+
+.exit-pass-body.step-one {
+    flex: 0 0 auto;
+    justify-content: center;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: auto 0;
+}
+
+.info-grid.info-grid-compact {
+    gap: 8px;
+    margin: 0;
+}
+
+.info-grid.info-grid-compact .info-tile {
+    min-height: 54px;
+    padding: 8px 10px;
+}
+
+.info-grid.info-grid-compact .info-label {
+    font-size: 0.72rem;
+}
+
+.info-grid.info-grid-compact .info-value {
+    font-size: 0.9rem;
+}
+
+.info-tile {
+    border: 1px solid #e1e7f0;
+    border-radius: 16px;
+    padding: 10px 12px;
+    background: #f7f9fc;
+    min-height: 64px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+label {
+    color: var(--bs-primary);
+}
+
+.info-label {
+    color: var(--muted);
+    font-size: 0.76rem;
+    margin-bottom: 4px;
+}
+
+.info-value {
+    font-weight: 700;
+    font-size: 0.98rem;
+}
+
+.approval-stamp {
+    align-self: center;
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    border: none;
+    background: #5ab53b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12px 24px rgba(24, 167, 108, 0.22);
+    transform: scale(1);
+    opacity: 1;
+    animation: stamp-grow 2s ease-in-out 1 forwards;
+}
+
+.approval-stamp.lock-stamp {
+    background: #7bc6b5;
+    box-shadow: 0 12px 24px rgba(86, 158, 144, 0.28);
+}
+
+.approval-stamp.gif-stamp {
+    background: transparent;
+    box-shadow: none;
+}
+
+.approval-stamp.gif-stamp img {
+    width: 140px;
+    height: auto;
+    display: block;
+}
+
+.breath-effect {
+    animation: breath 5s infinite ease-in-out;
+}
+
+@keyframes breath {
+
+    0%,
+    100% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(0.9);
+    }
+}
+
+.approval-stamp svg {
+    width: 84px;
+    height: 84px;
+}
+
+.approval-stamp path {
+    stroke: #ffffff;
+    stroke-width: 10;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.approval-stamp.lock-stamp .lock-body {
+    fill: #ffffff;
+    opacity: 0.95;
+}
+
+.approval-stamp.lock-stamp .lock-keyhole,
+.approval-stamp.lock-stamp .lock-keyhole-slot {
+    fill: #6bb7a5;
+}
+
+.approval-stamp.lock-stamp .lock-shackle {
+    stroke: #3f3f3f;
+    stroke-width: 12;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transform-origin: 40px 56px;
+    transform-box: fill-box;
+    animation: lock-close 2s ease-in-out infinite;
+}
+
+.approval-stamp.hourglass-stamp {
+    background: #2a7bdc;
+    box-shadow: 0 12px 24px rgba(42, 123, 220, 0.28);
+}
+
+.approval-stamp.hourglass-stamp .glass-frame {
+    stroke: #ffffff;
+    stroke-width: 8;
+    fill: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.approval-stamp.hourglass-stamp .glass-sand {
+    fill: #ffffff;
+    opacity: 0.9;
+    transform-origin: 60px 60px;
+    animation: hourglass-flip 4.8s ease-in-out infinite;
+}
+
+@keyframes lock-close {
+    0% {
+        transform: rotate(-35deg);
+        opacity: 0.2;
+    }
+
+    40% {
+        transform: rotate(-35deg);
+        opacity: 1;
+    }
+
+    70% {
+        transform: rotate(0deg);
+        opacity: 1;
+    }
+
+    95% {
+        transform: rotate(0deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: rotate(-35deg);
+        opacity: 0.2;
+    }
+}
+
+@keyframes hourglass-flip {
+    0% {
+        transform: rotate(0deg);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    50% {
+        transform: rotate(180deg);
+        opacity: 1;
+    }
+
+    95% {
+        transform: rotate(180deg);
+        opacity: 1;
+    }
+
+    100% {
+        transform: rotate(360deg);
+        opacity: 0;
+    }
+}
+
+@keyframes stamp-grow {
+    0% {
+        transform: scale(0.6);
+        opacity: 0;
+    }
+
+    20% {
+        transform: scale(1.05);
+        opacity: 1;
+    }
+
+    70% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.status-pill {
+    --pill-bg: #ffffff;
+    --pill-border: var(--accent);
+    --pill-text: var(--accent-dark);
+    --pill-shadow: rgba(24, 167, 108, 0.18);
+    --pill-glow: rgba(24, 167, 108, 0.28);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 16px;
+    border-radius: 999px;
+    background: var(--pill-bg);
+    border: 2px solid var(--pill-border);
+    font-weight: 700;
+    color: var(--pill-text);
+    font-size: 0.95rem;
+    box-shadow: 0 10px 20px var(--pill-shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.status-pill.status-confirm {
+    --pill-bg: #ffffff;
+    --pill-border: #18a76c;
+    --pill-text: #0f7a55;
+    --pill-shadow: rgba(24, 167, 108, 0.28);
+    --pill-glow: rgba(24, 167, 108, 0.42);
+}
+
+.status-pill.status-waiting {
+    --pill-bg: #f3f8ff;
+    --pill-border: #2a7bdc;
+    --pill-text: #1f5fa8;
+    --pill-shadow: rgba(42, 123, 220, 0.3);
+    --pill-glow: rgba(42, 123, 220, 0.45);
+}
+
+.status-pill.status-declined {
+    --pill-bg: #fff5f5;
+    --pill-border: #d64545;
+    --pill-text: #b13131;
+    --pill-shadow: rgba(214, 69, 69, 0.3);
+    --pill-glow: rgba(214, 69, 69, 0.45);
+}
+
+.status-pill.status-out {
+    --pill-bg: #f4f6f8;
+    --pill-border: #4b5b6b;
+    --pill-text: #2f3b46;
+    --pill-shadow: rgba(75, 91, 107, 0.32);
+    --pill-glow: rgba(75, 91, 107, 0.45);
+}
+
+.status-pill.status-back {
+    --pill-bg: #f4f6f8;
+    --pill-border: #4b5b6b;
+    --pill-text: #2f3b46;
+    --pill-shadow: rgba(75, 91, 107, 0.32);
+    --pill-glow: rgba(75, 91, 107, 0.45);
+}
+
+.status-pill::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -60%;
+    width: 40%;
+    height: 100%;
+    background: linear-gradient(120deg, transparent, var(--pill-glow), transparent);
+    animation: pill-shine 2.8s ease-in-out infinite;
+}
+
+.status-dock {
+    --dock-glow: rgba(24, 167, 108, 0.5);
+    --dock-bg-start: #e4ffef;
+    --dock-bg-mid: #c9f6e1;
+    --dock-bg-end: #b3efda;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    max-width: 560px;
+    margin: 0 auto;
+    z-index: 200;
+    padding: 14px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+    border-radius: 24px 24px 0 0;
+    background: linear-gradient(120deg, var(--dock-bg-start), var(--dock-bg-mid), var(--dock-bg-end));
+    background-size: 200% 200%;
+    box-shadow: 0 -8px 32px var(--dock-glow);
+    overflow: hidden;
+    text-align: center;
+    animation: status-shift 10s ease-in-out infinite;
+    transition: transform 0.4s cubic-bezier(0.32, 0.72, 0, 1);
+    touch-action: none;
+    user-select: none;
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+.status-dock.collapsed .qr-dock-frame::before {
+    animation: none;
+}
+
+.status-dock.collapsed {
+    transform: translateY(calc(100% - 90px));
+}
+
+.exit-pass-body:has(.status-dock) {
+    padding-bottom: 130px;
+}
+
+.status-dock::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    transform: translateX(-65%);
+    animation: status-sweep 3.6s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.status-dock.status-confirm {
+    --dock-glow: rgba(24, 167, 108, 0.5);
+    --dock-bg-start: #e4ffef;
+    --dock-bg-mid: #c9f6e1;
+    --dock-bg-end: #b3efda;
+}
+
+.status-dock.status-waiting {
+    --dock-glow: rgba(42, 123, 220, 0.5);
+    --dock-bg-start: #d9e9ff;
+    --dock-bg-mid: #c3dcff;
+    --dock-bg-end: #b1d2ff;
+}
+
+.status-dock.status-declined {
+    --dock-glow: rgba(214, 69, 69, 0.5);
+    --dock-bg-start: #ffdcdc;
+    --dock-bg-mid: #ffc6c6;
+    --dock-bg-end: #ffb3b3;
+}
+
+.status-dock.status-out,
+.status-dock.status-back {
+    --dock-glow: rgba(75, 91, 107, 0.5);
+    --dock-bg-start: #e6eaef;
+    --dock-bg-mid: #d3dbe3;
+    --dock-bg-end: #c2ccd6;
+}
+
+.status-handle {
+    width: 56px;
+    height: 5px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.75);
+    margin: 0 auto 10px;
+    cursor: grab;
+}
+
+.status-handle:active {
+    cursor: grabbing;
+}
+
+.qr-sheet-section {
+    padding: 6px 0 12px;
+}
+
+.status-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    text-align: center;
+}
+
+.status-note {
+    color: var(--muted);
+    font-size: 0.82rem;
+}
+
+.status-pill .bi {
+    font-size: 1.05rem;
+    line-height: 1;
+}
+
+.exit-pass-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+}
+
+.exit-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 999px;
+    padding: 12px 28px;
+    font-weight: 700;
+    font-size: 1rem;
+    line-height: 1.1;
+    white-space: nowrap;
+    min-width: 100%;
+    width: 100%;
+    max-width: 100%;
+}
+
+.qr-dock-wrapper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0 0;
+}
+
+.qr-dock-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #2f3b46;
+    background: rgba(255, 255, 255, 0.7);
+    padding: 5px 14px;
+    border-radius: 999px;
+}
+
+.qr-dock-label .bi {
+    font-size: 1rem;
+}
+
+.qr-poll-retry {
+    min-height: 44px;
+    padding: 8px 20px;
+    font-size: 0.9rem;
+    border: 1px solid rgba(47, 59, 70, 0.18);
+    cursor: pointer;
+}
+
+.qr-poll-retry:hover,
+.qr-poll-retry:focus-visible {
+    background: #fff;
+}
+
+.qr-dock-frame {
+    background: #fff;
+    padding: 14px;
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    display: inline-flex;
+    position: relative;
+    overflow: hidden;
+    z-index: 0;
+}
+
+.qr-dock-frame::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 200%;
+    height: 200%;
+    transform: translate(-50%, -50%);
+    background: conic-gradient(#18a76c, #2a7bdc, #e84393, #f5c542, #00b894, #6c5ce7, #18a76c);
+    animation: qr-rotate 3s linear infinite;
+    z-index: -2;
+}
+
+.qr-dock-frame::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border-radius: 17px;
+    background: #fff;
+    z-index: -1;
+}
+
+.qr-dock-frame canvas {
+    display: block;
+    border-radius: 12px;
+    position: relative;
+    z-index: 1;
+}
+
+@keyframes qr-rotate {
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+.otp-card {
+    background: #fff;
+    border-radius: 20px;
+    padding: 24px;
+    border: 1px solid #e3e9f0;
+    box-shadow: 0 18px 40px rgba(11, 26, 42, 0.08);
+    margin: auto 0;
+}
+
+.otp_div {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.otp_div input[type="number"] {
+    font-size: 1.3rem;
+    font-weight: 700;
+    padding: 10px 0;
+    border-radius: 12px;
+    border: 1px solid #d6dee9;
+    background: #f8fafc;
+}
+
+.otp_div input[type="text"] {
+    width: 100%;
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 12px 14px;
+    border-radius: 14px;
+    border: 1px solid #d6dee9;
+    background: #f8fafc;
+}
+
+.pass-footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.9rem;
+    margin-top: 24px;
+}
+
+@keyframes status-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+@keyframes status-sweep {
+    0% {
+        transform: translateX(0);
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: translateX(330%);
+        opacity: 0;
+    }
+}
+
+@keyframes pill-shine {
+    0% {
+        transform: translateX(0);
+        opacity: 0;
+    }
+
+    25% {
+        opacity: 0.9;
+    }
+
+    100% {
+        transform: translateX(380%);
+        opacity: 0;
+    }
+}
+
+
+.modal {
+    overflow-y: hidden !important;
+}
+
+.form-control {
+    padding: .675rem .75rem;
+}
+
+@media (max-width: 768px) {
+    .exit-pass-page {
+        align-items: center;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding: calc(env(safe-area-inset-top, 0px) + 8px) 16px calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+    }
+
+    .exit-pass-card {
+        width: 100%;
+        max-width: calc(100vw - 32px);
+        min-height: 80vh;
+        min-height: 80dvh;
+        max-height: none;
+        margin-top: 0;
+    }
+
+    .exit-pass-header {
+        padding: 12px 16px 20px;
+    }
+
+    .exit-pass-brand img {
+        max-width: 112px;
+        margin-top: 4px;
+    }
+
+    .exit-pass-body {
+        padding: 10px 12px 10px;
+        gap: 8px;
+    }
+
+    .info-grid {
+        gap: 8px;
+    }
+
+    .info-tile {
+        padding: 8px 10px;
+    }
+
+    .info-value {
+        font-size: 0.92rem;
+    }
+
+    .status-dock {
+        padding: 10px 12px calc(12px + env(safe-area-inset-bottom, 0px));
+        max-width: 100%;
+    }
+
+    .exit-action-btn {
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    .otp_div {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Very small phones */
+@media (max-width: 400px) {
+    .exit-pass-page {
+        padding: calc(env(safe-area-inset-top, 0px) + 4px) 8px calc(env(safe-area-inset-bottom, 0px) + 8px) !important;
+    }
+
+    .exit-pass-card {
+        max-width: calc(100vw - 16px);
+    }
+
+    .exit-pass-header {
+        padding: 10px 12px 16px;
+    }
+
+    .exit-pass-body {
+        padding: 8px 8px 8px;
+    }
+}
+
+/* ============================================================
+   PG-1160 — the pages opened outside the panel (the kiosk stations, the
+   /external/exits pages, the points account, the guard's exit pass) in the
+   login page's language (assets/compiled/css/login.css, PG-811): the logo and
+   the screen's name sit on a navy band of the page, and the card holds only
+   what the screen is for. Everything hangs on .ext-page, so the other users of
+   this shell (login, l.php, the panel login, sign_login) keep their look. Since
+   Roi's "every screen that has this background" the guest pass, the message
+   attachments, the teachers' line panel login and the sales booking pages carry it
+   too. Only the look changes: the markup is the same, with the class added.
+   ============================================================ */
+.exit-pass-page.ext-page {
+    --ext-ink: #16224e;
+    --ext-label: #2b3a67;
+    --ext-muted: #5d6890;
+    --ext-line: #dfe6f3;
+    --ext-field: #f6f8fd;
+    --ext-surface: #fff;
+    --ext-accent: #2643a8;
+    --ext-wash: #eaf0ff;
+    --ext-ring: rgba(38, 67, 168, .18);
+}
+
+html[data-bs-theme=dark] .exit-pass-page.ext-page {
+    --ext-ink: #e7ecf5;
+    --ext-label: #c3cbe3;
+    --ext-muted: #94a3b8;
+    --ext-line: #35354f;
+    --ext-field: #171726;
+    --ext-surface: #1e1e2d;
+    --ext-accent: #8ea2ff;
+    --ext-wash: rgba(142, 162, 255, .14);
+    --ext-ring: rgba(142, 162, 255, .25);
+}
+
+/* the login page's navy band with its curved edge, and the calm base under the card. general-pages.css
+   paints the same band on every page that loads it; this one is for the pages that don't (the line panel
+   login, the sales booking pages), whose own sheets paint the old wave on the body */
+body:has(.ext-page) {
+    background:
+        radial-gradient(closest-side, rgba(255, 255, 255, .13), transparent) top center / min(720px, 100%) 300px no-repeat,
+        radial-gradient(ellipse 125% 100% at 50% 0%, #2a48b0 0%, #152b78 52%, #0f205e 99.4%, transparent 100%) top center / 100% clamp(300px, 46vh, 430px) no-repeat,
+        #eef2fa;
+}
+
+html[data-bs-theme=dark] body:has(.ext-page) {
+    background:
+        radial-gradient(closest-side, rgba(255, 255, 255, .08), transparent) top center / min(720px, 100%) 300px no-repeat,
+        radial-gradient(ellipse 125% 100% at 50% 0%, #1d3488 0%, #12215e 52%, #0b163f 99.4%, transparent 100%) top center / 100% clamp(300px, 46vh, 430px) no-repeat,
+        #131622;
+}
+
+/* anchored to the top, as the login page: a short step must not drop the logo down the screen.
+   !important: the rules above set this padding !important up to 768px. */
+.exit-pass-page.ext-page {
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    padding: clamp(28px, 7vh, 80px) 16px 40px !important;
+}
+
+/* the card itself is only a frame now: its header stands on the band, its body is the white card */
+.ext-page .exit-pass-card {
+    max-width: 520px;
+    min-height: 0;
+    overflow: visible;
+    border-radius: 0;
+    box-shadow: none;
+    background: none;
+}
+
+.ext-page .exit-pass-header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 0 0 24px;
+    background: none;
+    border-radius: 0;
+    z-index: auto;
+}
+
+.ext-page .exit-pass-header::after {
+    display: none;
+}
+
+.ext-page .exit-pass-header > div:not(.exit-pass-brand) {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+/* the logo first, as on the login page, whichever order the page writes it in */
+.ext-page .exit-pass-brand {
+    order: -1;
+}
+
+.ext-page .exit-pass-brand img {
+    display: block;
+    width: 168px;
+    max-width: 168px;
+    margin: 0;
+}
+
+/* !important: general-pages.css sets every h1 to 24px !important (the login page says the same) */
+.ext-page .exit-pass-header .exit-pass-title {
+    font-size: 1.375rem !important;
+    line-height: 1.35;
+    letter-spacing: .01em;
+    text-shadow: none;
+    color: rgba(255, 255, 255, .85);
+    --pg-dark-ink: rgba(255, 255, 255, .85);
+}
+
+/* the second line on the band - the school, or what the screen is for - as a quiet tag */
+.ext-page .exit-pass-header .exit-pass-subtitle {
+    margin: 0;
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .1);
+    border: 1px solid rgba(255, 255, 255, .16);
+    font-size: .875rem;
+    color: rgba(255, 255, 255, .78);
+    --pg-dark-ink: rgba(255, 255, 255, .78);
+}
+
+/* a station with no school yet (the invalid-link screen) prints an empty line: no empty tag */
+.ext-page .exit-pass-header .exit-pass-subtitle:empty {
+    display: none;
+}
+
+.ext-page .exit-pass-body {
+    border-radius: 28px;
+    background: var(--ext-surface);
+    box-shadow: 0 1px 2px rgba(15, 32, 94, .06), 0 28px 56px -28px rgba(15, 32, 94, .5);
+    padding: 32px 32px 28px;
+    color: var(--ext-ink);
+}
+
+/* the fields sit straight in the card, as on the login page, not in a second card inside it */
+.ext-page .otp-card {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+}
+
+/* app-dark-custom.css greys every text in dark mode unless it names its ink in --pg-dark-ink */
+.ext-page .form-label,
+.ext-page label {
+    color: var(--ext-label);
+    --pg-dark-ink: var(--ext-label);
+}
+
+/* .exit-pass-page.ext-page: the dark build paints html[data-bs-theme=dark] .form-control's background */
+.exit-pass-page.ext-page .form-control,
+.exit-pass-page.ext-page .form-select,
+.exit-pass-page.ext-page .otp_div input[type="text"],
+.ext-page .otp_div input[type="number"] {
+    border-radius: 14px;
+    border: 1.5px solid var(--ext-line);
+    background-color: var(--ext-field);
+    color: var(--ext-ink);
+    --pg-dark-ink: var(--ext-ink);
+    box-shadow: none;
+    transition: border-color .2s ease, box-shadow .2s ease, background-color .2s ease;
+}
+
+/* general-pages.css rings every focused thing in .exit-pass-page navy and white (!important);
+   a field shows the login page's ring */
+.exit-pass-page.ext-page .form-control:focus,
+.exit-pass-page.ext-page .form-control:focus-visible,
+.exit-pass-page.ext-page .form-select:focus,
+.exit-pass-page.ext-page .form-select:focus-visible,
+.exit-pass-page.ext-page .otp_div input:focus,
+.exit-pass-page.ext-page .otp_div input:focus-visible {
+    background-color: var(--ext-surface);
+    border-color: var(--ext-accent);
+    outline: 0 !important;
+    box-shadow: 0 0 0 4px var(--ext-ring) !important;
+}
+
+/* :where(): a station's own buttons (kiosk.css, 60-64px) keep their size */
+.ext-page :where(.btn-lg.btn-success) {
+    min-height: 58px;
+    border-radius: 14px;
+    font-size: 1.125rem;
+    box-shadow: 0 16px 26px -16px rgba(21, 115, 71, .7);
+}
+
+/* --- the guard's exit pass (approval.php) --- */
+.ext-page .info-tile {
+    border: 1.5px solid var(--ext-line);
+    border-radius: 16px;
+    background: var(--ext-field);
+}
+
+.ext-page .info-label {
+    color: var(--ext-muted);
+    --pg-dark-ink: var(--ext-muted);
+}
+
+.ext-page .info-value {
+    color: var(--ext-ink);
+    --pg-dark-ink: var(--ext-ink);
+}
+
+/* a heading in the card ("אימות זהות" on the exits pages, the exit pass's verify step).
+   !important: the exits pages write its colour inline, a light-only ink */
+.ext-page .exit-pass-body :is(h2, .exit-pass-title) {
+    color: var(--ext-ink) !important;
+    --pg-dark-ink: var(--ext-ink);
+    text-shadow: none;
+}
+
+.ext-page .exit-pass-body .exit-pass-subtitle {
+    color: var(--ext-muted) !important;
+    --pg-dark-ink: var(--ext-muted);
+}
+
+/* "verify first" was a heavy navy block: a soft note, as the login page's.
+   .exit-pass-page.ext-page: the dark build paints html[data-bs-theme=dark] .alert-info */
+.exit-pass-page.ext-page .alert-info {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border: 0;
+    border-radius: 14px;
+    background: var(--ext-wash);
+    color: var(--ext-ink);
+    --pg-dark-ink: var(--ext-ink);
+    font-size: .9375rem;
+}
+
+/* bi-info-circle */
+.exit-pass-page.ext-page .alert-info::before {
+    content: "\F431";
+    flex-shrink: 0;
+    font-family: bootstrap-icons;
+    font-size: 1.15rem;
+    line-height: 1;
+    color: var(--ext-accent);
+    --pg-dark-ink: var(--ext-accent);
+}
+
+.ext-page .alert-danger,
+.ext-page .alert-warning {
+    border: 0;
+    border-radius: 14px;
+}
+
+/* the same filled box in both themes (app.rtl.css's colours): the dark build paints its own
+   background and the dark text repaint greyed the words on it */
+.exit-pass-page.ext-page .alert-danger {
+    background-color: #f3616d;
+    color: #fff;
+    --pg-dark-ink: #fff;
+}
+
+.exit-pass-page.ext-page .alert-warning {
+    background-color: #eaca4a;
+    color: #3f3a26;
+    --pg-dark-ink: #3f3a26;
+}
+
+.ext-page .otp_div input[type="text"] {
+    height: 58px;
+    font-size: 1.375rem;
+    letter-spacing: .3em;
+    text-align: center;
+}
+
+.ext-page .pass-footer {
+    margin-top: 20px;
+    font-size: .84rem;
+    color: var(--ext-muted);
+    --pg-dark-ink: var(--ext-muted);
+}
+
+/* the sheet with the status and the QR: the card's width, the login card's corner */
+.ext-page .status-dock {
+    max-width: 520px;
+    border-radius: 28px 28px 0 0;
+    box-shadow: 0 -18px 40px -18px var(--dock-glow);
+}
+
+/* in dark the sheet keeps its status colour as a deep tint; the QR's frame stays white for the scanner */
+html[data-bs-theme=dark] .ext-page .status-dock.status-confirm {
+    --dock-glow: rgba(52, 211, 153, .35);
+    --dock-bg-start: #10372b;
+    --dock-bg-mid: #124232;
+    --dock-bg-end: #0f3328;
+}
+
+html[data-bs-theme=dark] .ext-page .status-dock.status-waiting {
+    --dock-glow: rgba(96, 165, 250, .35);
+    --dock-bg-start: #12284d;
+    --dock-bg-mid: #163159;
+    --dock-bg-end: #112548;
+}
+
+html[data-bs-theme=dark] .ext-page .status-dock.status-declined {
+    --dock-glow: rgba(251, 113, 133, .35);
+    --dock-bg-start: #3d1622;
+    --dock-bg-mid: #47192a;
+    --dock-bg-end: #3a1520;
+}
+
+html[data-bs-theme=dark] .ext-page .status-dock:is(.status-out, .status-back) {
+    --dock-glow: rgba(148, 163, 184, .3);
+    --dock-bg-start: #232a37;
+    --dock-bg-mid: #29313f;
+    --dock-bg-end: #222936;
+}
+
+html[data-bs-theme=dark] .ext-page .status-dock::after {
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, .12), transparent);
+}
+
+html[data-bs-theme=dark] .ext-page .status-handle {
+    background: rgba(255, 255, 255, .3);
+}
+
+html[data-bs-theme=dark] .ext-page .qr-dock-label {
+    background: rgba(255, 255, 255, .1);
+    color: #e7ecf5;
+    --pg-dark-ink: #e7ecf5;
+}
+
+.ext-page .status-pill {
+    --pg-dark-ink: var(--pill-text);
+}
+
+html[data-bs-theme=dark] .ext-page .status-pill {
+    --pill-bg: #1e1e2d;
+}
+
+html[data-bs-theme=dark] .ext-page .status-pill.status-confirm {
+    --pill-text: #6ee7b7;
+    --pill-border: #34d399;
+}
+
+html[data-bs-theme=dark] .ext-page .status-pill.status-waiting {
+    --pill-text: #93c5fd;
+    --pill-border: #60a5fa;
+}
+
+html[data-bs-theme=dark] .ext-page .status-pill.status-declined {
+    --pill-text: #fda4af;
+    --pill-border: #fb7185;
+}
+
+html[data-bs-theme=dark] .ext-page .status-pill:is(.status-out, .status-back) {
+    --pill-text: #cbd5e1;
+    --pill-border: #94a3b8;
+}
+
+.ext-page .status-note {
+    color: var(--ext-muted);
+    --pg-dark-ink: var(--ext-muted);
+}
+
+@media (max-width: 575.98px) {
+    body:has(.ext-page),
+    html[data-bs-theme=dark] body:has(.ext-page) {
+        background-size: 100% 240px, 100% 300px, auto;
+    }
+
+    .exit-pass-page.ext-page {
+        padding: calc(env(safe-area-inset-top, 0px) + 28px) 16px calc(env(safe-area-inset-bottom, 0px) + 28px) !important;
+    }
+
+    .ext-page .exit-pass-card {
+        max-width: 100%;
+    }
+
+    .ext-page .exit-pass-header {
+        gap: 10px;
+        padding-bottom: 20px;
+    }
+
+    .ext-page .exit-pass-brand img {
+        width: 140px;
+        max-width: 140px;
+    }
+
+    .ext-page .exit-pass-header .exit-pass-title {
+        font-size: 1.125rem !important;
+    }
+
+    .ext-page .exit-pass-body {
+        padding: 24px 18px 20px;
+    }
+}
+
+/* the room under the fixed status sheet (130px, set above), which the card's own padding would take back */
+.ext-page .exit-pass-body:has(.status-dock) {
+    padding-bottom: 130px;
+}
+
+/* the countdown after the guard's scan carries a dark ink inline; on the dark sheet it is light.
+   !important: against the inline colour */
+html[data-bs-theme=dark] .ext-page #qr-countdown {
+    color: rgba(255, 255, 255, .75) !important;
+}
+
+/* the waiting / declined animations are drawn on a near-white square: a rounded plate, not a raw
+   rectangle on the coloured (and in dark, deep) sheet */
+.ext-page .approval-stamp.gif-stamp img {
+    border-radius: 22px;
+}
+
+/* the teachers' line panel login (ivr/panel/login.php) wears the panel login's purple
+   (M/assets/css/login.css, loaded after this file): in this look, the login page's navy.
+   --dashui-primary also paints its links and the forgot-password window's labels (written
+   inline); on the body, because that window sits outside .ext-page. */
+body:has(.ext-page .admin-login-body) {
+    --dashui-primary: #2643a8;
+}
+
+.exit-pass-page.ext-page .admin-login-body h2 {
+    color: var(--ext-ink);
+    --pg-dark-ink: var(--ext-ink);
+}
+
+.exit-pass-page.ext-page .admin-login-body .remember-row .form-check-input:checked {
+    background-color: #2643a8;
+    border-color: #2643a8;
+}
+
+body:has(.ext-page .admin-login-body) .purple-gradient-btn {
+    min-height: 56px;
+    background: linear-gradient(135deg, #2a48b0 0%, #152b78 100%);
+    box-shadow: 0 16px 26px -16px rgba(21, 43, 120, .8);
+}
+
+body:has(.ext-page .admin-login-body) .purple-gradient-btn:hover {
+    box-shadow: 0 20px 30px -16px rgba(21, 43, 120, .85);
+}
+
+/* the sales booking pages (M/admin/crm/sales/appointment.php, schedule.php) keep their card light in dark
+   mode, as booking.css always pinned it: its steps and slots are drawn for a white card */
+html[data-bs-theme=dark] .exit-pass-page.ext-page:has(.pgbk-card) {
+    --ext-ink: #16224e;
+    --ext-label: #2b3a67;
+    --ext-muted: #5d6890;
+    --ext-line: #dfe6f3;
+    --ext-field: #f6f8fd;
+    --ext-surface: #fff;
+    --ext-accent: #2643a8;
+    --ext-wash: #eaf0ff;
+    --ext-ring: rgba(38, 67, 168, .18);
+}

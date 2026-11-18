@@ -1,0 +1,1820 @@
+/* Admin Dashboard - Chatbot Management */
+
+.chatbot-card-header {
+    padding: 0.75rem 1.5rem !important;
+}
+
+.chatbot-title {
+    float: right;
+    line-height: 2.2;
+}
+
+.chatbot-back-btn {
+    float: left;
+}
+
+.chatbot-textarea-sm {
+    font-family: 'RubikLocal', sans-serif;
+    font-size: 0.9rem;
+}
+
+.chatbot-textarea-lg {
+    font-family: monospace, 'RubikLocal', sans-serif;
+    font-size: 0.85rem;
+    min-height: 400px;
+}
+
+.chatbot-module-textarea {
+    font-family: monospace, 'RubikLocal', sans-serif;
+    font-size: 0.82rem;
+    min-height: 180px;
+}
+
+.chatbot-module-header:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+.chatbot-module-chars {
+    font-size: 0.7rem;
+    min-width: 50px;
+    text-align: center;
+}
+
+.chatbot-scan-log {
+    background: #1e1e2e;
+    color: #cdd6f4;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.8rem;
+    padding: 12px 16px;
+    border-radius: 8px;
+    max-height: 350px;
+    overflow-y: auto;
+    direction: ltr;
+    text-align: left;
+    line-height: 1.7;
+}
+
+.chatbot-scan-log .log-ok {
+    color: #a6e3a1;
+}
+
+.chatbot-scan-log .log-err {
+    color: #f38ba8;
+}
+
+.chatbot-scan-log .log-warn {
+    color: #f9e2af;
+}
+
+.chatbot-scan-log .log-info {
+    color: #89b4fa;
+}
+
+.chatbot-scan-log .log-dim {
+    color: #6c7086;
+}
+
+.chatbot-scan-log .log-head {
+    color: #cba6f7;
+    font-weight: bold;
+}
+
+/* Conversation Log in Modal */
+.chatbot-conversation-log {
+    max-height: 400px;
+    overflow-y: auto;
+    padding: 1rem;
+    background: var(--bs-tertiary-bg, #f8f9fa);
+    border-radius: 0.5rem;
+}
+
+.chatbot-msg-user,
+.chatbot-msg-assistant {
+    margin-bottom: 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    max-width: 85%;
+}
+
+.chatbot-msg-user {
+    background: var(--pg-chat-primary-light, #e3f2fd);
+    margin-right: auto;
+    margin-left: 15%;
+}
+
+.chatbot-msg-assistant {
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--bs-border-color, #dee2e6);
+    margin-left: auto;
+    margin-right: 15%;
+}
+
+.chatbot-msg-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--bs-secondary-color, #6c757d);
+}
+
+.chatbot-msg-content {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* Rating Stars */
+.chatbot-rating-stars {
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.chatbot-rating-stars i {
+    color: var(--bs-border-color, #dee2e6);
+    transition: color 0.15s;
+}
+
+.chatbot-rating-stars i:hover,
+.chatbot-rating-stars i:hover ~ i {
+    color: #ffc107;
+}
+
+.chatbot-star-active {
+    color: #ffc107 !important;
+}
+
+/* Per-message rating */
+.chatbot-msg-rating {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed var(--bs-border-color, #e9ecef);
+}
+
+.chatbot-msg-stars {
+    font-size: 1rem;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.chatbot-msg-stars i {
+    color: var(--bs-border-color, #dee2e6);
+    transition: color 0.15s;
+}
+
+.chatbot-msg-stars i:hover,
+.chatbot-msg-stars i:hover ~ i {
+    color: #ffc107;
+}
+
+.chatbot-msg-feedback-input {
+    font-size: 0.8rem !important;
+    padding: 0.2rem 0.5rem !important;
+    max-width: 280px;
+}
+
+.chatbot-confidence {
+    padding: 4px 0;
+}
+
+.chatbot-confidence-badge {
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.chatbot-confidence-reason {
+    font-size: 0.78rem;
+    line-height: 1.4;
+    padding: 2px 4px;
+}
+
+/* Frontend Chat Widget Styles */
+
+/* Auto-adapt to panel: admin uses --dashui-primary (purple), regular uses --pg-chat-primary (blue) */
+:root {
+    --pg-ai-primary: var(--bs-primary, var(--dashui-primary, #152b78));
+}
+
+#pgLoginChatBody {
+    min-height: 0;
+}
+
+.pg-ai-chat-messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.pg-ai-chat-bubble {
+    margin-bottom: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 1rem;
+    max-width: 85%;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    word-break: break-word;
+    white-space: pre-wrap;
+    text-align: start;
+}
+
+.pg-ai-chat-bubble-user {
+    background: var(--pg-ai-primary);
+    color: #fff;
+    align-self: flex-start;
+    border-bottom-right-radius: 0.25rem;
+}
+
+.pg-ai-chat-bubble-ai {
+    background: var(--pg-chat-bubble-them, #f0f0f0);
+    color: var(--pg-chat-text, #333);
+    align-self: flex-end;
+    border-bottom-left-radius: 0.25rem;
+}
+
+.pg-ai-chat-input-wrap {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border-top: 1px solid var(--pg-chat-border, #eee);
+    flex-shrink: 0;
+}
+
+.pg-ai-chat-input-wrap input {
+    flex: 1;
+    border: 1px solid var(--pg-chat-border, #ddd);
+    border-radius: 1.5rem;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.85rem;
+    outline: none;
+    direction: rtl;
+    background: var(--bs-body-bg, #fff);
+    color: var(--pg-chat-text, inherit);
+}
+
+.pg-ai-chat-input-wrap input:focus {
+    border-color: var(--pg-ai-primary);
+}
+
+.pg-ai-chat-send-btn {
+    background: var(--pg-ai-primary);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.pg-ai-chat-send-btn:hover {
+    background: var(--pg-ai-primary);
+}
+
+.pg-ai-chat-typing {
+    display: inline-flex;
+    gap: 4px;
+    padding: 4px 8px;
+}
+
+.pg-ai-chat-typing span {
+    width: 6px;
+    height: 6px;
+    background: #999;
+    border-radius: 50%;
+    animation: pgAiTyping 1.2s infinite;
+}
+
+.pg-ai-chat-typing span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.pg-ai-chat-typing span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes pgAiTyping {
+    0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+    30% { opacity: 1; transform: translateY(-4px); }
+}
+
+.pg-ai-chat-escalate-btn {
+    display: block;
+    width: 100%;
+    padding: 0.5rem;
+    margin-top: 0.5rem;
+    background: var(--bs-body-bg, #fff);
+    border: 1px solid var(--pg-ai-primary);
+    color: var(--pg-ai-primary);
+    border-radius: 0.5rem;
+    cursor: pointer;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.pg-ai-chat-escalate-btn:hover {
+    background: var(--pg-chat-primary-light, #f5f3ff);
+}
+
+.pg-ai-chat-escalate-btn:disabled {
+    opacity: .6;
+    cursor: default;
+}
+
+/* "ביטול ההעברה לנציג" — in the place of the button above while the request is with the team (PG-309). */
+.pg-ai-chat-cancel-wrap {
+    padding: 0 0.5rem;
+}
+
+/* The panel's chat sits its button off the input, as its "דבר עם נציג אנושי" does (M/inc/footer.php). */
+.pg-ai-chat-cancel-wrap--panel {
+    padding-bottom: 0.5rem;
+}
+
+/* ── A person from the support team on the conversation (inc/functions/support_inbox.php) ──
+   Their reply is the bot's bubble with a name line and an accent on the start side, so it reads as a person
+   at a glance; a note line says what happened ("העברתי לנציג…"); a system admin picks where to hear back. */
+.pg-ai-chat-bubble-agent {
+    border-inline-start: 3px solid var(--pg-ai-primary);
+}
+
+/* The name of who answered, with their drawn face (support_inbox.php sibAgentShown(); Amit, 14/10: "שירגיש שזה
+   אנושי") — warm and unlike the system's own look, so the reply reads as a person and not the bot. */
+.pg-ai-chat-agent-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    font-size: 0.78rem;
+    color: var(--pg-ai-primary);
+    white-space: normal;
+}
+
+.pg-ai-chat-agent-avatar {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+}
+
+/* ── The team answered and the chat is closed (chat/assets/support_notice.js) ──
+   A small card just above the chat button — the face, the name and the start of the answer; a tap opens the chat.
+   The button gets a count and pulses once. Nothing opens by itself (Amit, 14/10). JS places it by the button. */
+.pg-support-notice,
+.pg-support-notice-count {
+    --pg-sn-surface: var(--bs-body-bg, #fff);
+    --pg-sn-ink: var(--bs-body-color, #1e2440);
+    --pg-sn-line: var(--bs-border-color, #e4e7f5);
+    --pg-sn-meta: #637381;
+    --pg-sn-hover: rgba(28, 39, 60, 0.06);
+    --pg-sn-shadow: 0 12px 28px rgba(28, 39, 60, 0.16);
+    --pg-sn-alert: #dc3545;
+    --pg-sn-on-alert: #fff;
+}
+
+[data-bs-theme="dark"] .pg-support-notice,
+[data-bs-theme="dark"] .pg-support-notice-count {
+    --pg-sn-surface: #1e293b;
+    --pg-sn-ink: #e7ecf5;
+    --pg-sn-line: #2c3a52;
+    --pg-sn-meta: #94a3b8;
+    --pg-sn-hover: rgba(255, 255, 255, 0.08);
+    --pg-sn-shadow: 0 12px 28px rgba(0, 0, 0, 0.45);
+}
+
+.pg-support-notice {
+    position: fixed;
+    bottom: 92px;
+    inset-inline-end: 20px;
+    z-index: 1049;
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    width: min(300px, calc(100vw - 32px));
+    padding: 10px;
+    border: 1px solid var(--pg-sn-line);
+    border-radius: 16px;
+    background: var(--pg-sn-surface);
+    color: var(--pg-sn-ink);
+    box-shadow: var(--pg-sn-shadow);
+    opacity: 0;
+    transform: translateY(8px);
+    visibility: hidden;
+    transition: opacity 220ms cubic-bezier(0.4, 0, 0.2, 1), transform 220ms cubic-bezier(0.4, 0, 0.2, 1),
+                visibility 0s linear 220ms;
+}
+
+.pg-support-notice.is-shown {
+    opacity: 1;
+    transform: none;
+    visibility: visible;
+    transition-delay: 0s;
+}
+
+.pg-support-notice__open {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 2px;
+    border: 0;
+    border-radius: 12px;
+    background: none;
+    color: inherit;
+    font: inherit;
+    text-align: start;
+    cursor: pointer;
+}
+
+.pg-support-notice__avatar {
+    flex: none;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+}
+
+.pg-support-notice__words {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.pg-support-notice__name {
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.pg-support-notice__text {
+    display: -webkit-box;
+    overflow: hidden;
+    color: var(--pg-sn-meta);
+    font-size: 0.85rem;
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.pg-support-notice__close {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: none;
+    color: var(--pg-sn-meta);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pg-support-notice__close:hover {
+    background: var(--pg-sn-hover);
+}
+
+.pg-support-notice__open:focus-visible,
+.pg-support-notice__close:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--pg-sn-surface), 0 0 0 4px var(--pg-ai-primary);
+}
+
+/* The count on a chat button that has no badge of its own (the panel's support button, the login pages' chat). */
+.pg-support-notice-count {
+    position: absolute;
+    top: -6px;
+    inset-inline-start: -6px;
+    z-index: 2;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 5px;
+    border: 2px solid var(--pg-sn-surface);
+    border-radius: 999px;
+    background: var(--pg-sn-alert);
+    color: var(--pg-sn-on-alert);
+    font-size: 0.75rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.pg-support-notice-count.is-on {
+    display: flex;
+}
+
+.pg-support-notice-pulse {
+    animation: pg-support-notice-pulse 900ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes pg-support-notice-pulse {
+    0%, 100% { transform: scale(1); }
+    40% { transform: scale(1.12); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pg-support-notice {
+        transform: none;
+        transition: none;
+    }
+
+    .pg-support-notice-pulse {
+        animation: none;
+    }
+}
+
+.pg-ai-chat-note {
+    align-self: center;
+    max-width: 92%;
+    margin: 0.25rem 0 0.6rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--pg-ai-primary) 8%, transparent);
+    color: var(--pg-chat-text, #333);
+    font-size: 0.78rem;
+    line-height: 1.5;
+    text-align: center;
+    white-space: pre-wrap;
+}
+
+.pg-ai-chat-contact {
+    align-self: stretch;
+    margin: 0 0 0.6rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--pg-chat-border, #e2e8f0);
+    border-radius: 0.75rem;
+    background: var(--bs-body-bg, #fff);
+    font-size: 0.82rem;
+    color: var(--pg-chat-text, #333);
+}
+
+.pg-ai-chat-contact-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-top: 0.45rem;
+}
+
+.pg-ai-chat-contact-btn {
+    flex: 1 1 auto;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--pg-ai-primary);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--pg-ai-primary);
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color 160ms cubic-bezier(.4, 0, .2, 1);
+}
+
+.pg-ai-chat-contact-btn:hover {
+    background: color-mix(in srgb, var(--pg-ai-primary) 10%, transparent);
+}
+
+.pg-ai-chat-contact-btn:focus-visible,
+.pg-ai-chat-escalate-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--bs-body-bg, #fff), 0 0 0 4px var(--pg-ai-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pg-ai-chat-contact-btn { transition: none; }
+}
+
+/* A picture in the support chat — a screenshot to the team, or theirs back (chat/assets/support_image.js). Only while a
+   person handles the conversation; it sits inside the bubble, never wider than it, and opens full size on a click. */
+.pg-ai-chat-image-btn {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--pg-chat-border, #ddd);
+    border-radius: 50%;
+    background: transparent;
+    color: var(--pg-ai-primary);
+    cursor: pointer;
+    transition: background-color 160ms cubic-bezier(.4, 0, .2, 1);
+}
+
+.pg-ai-chat-image-btn[hidden] {
+    display: none;
+}
+
+.pg-ai-chat-image-btn:hover {
+    background: color-mix(in srgb, var(--pg-ai-primary) 10%, transparent);
+}
+
+.pg-ai-chat-image-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px var(--bs-body-bg, #fff), 0 0 0 4px var(--pg-ai-primary);
+}
+
+.pg-ai-chat-image {
+    display: block;
+    margin-bottom: 4px;
+}
+
+.pg-ai-chat-image img {
+    display: block;
+    max-width: 100%;
+    max-height: 240px;
+    border-radius: 0.6rem;
+    object-fit: contain;
+}
+
+.pg-ai-chat-image--loading {
+    min-width: 140px;
+    min-height: 90px;
+    border-radius: 0.6rem;
+    background: color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.pg-ai-chat-image-missing {
+    display: block;
+    font-size: 0.78rem;
+    opacity: 0.85;
+}
+
+.pg-ai-chat-bubble.is-sending {
+    opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pg-ai-chat-image-btn { transition: none; }
+}
+
+.pg-ai-chat-navigate-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 6px 14px;
+    background: var(--pg-ai-primary);
+    color: #fff !important;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none !important;
+    transition: opacity 0.2s;
+}
+
+.pg-ai-chat-navigate-btn:hover {
+    opacity: 0.85;
+    color: #fff !important;
+}
+
+.pg-ai-chat-navigate-btn i {
+    font-size: 0.9rem;
+}
+
+.pg-ai-chat-back-btn {
+    background: none;
+    border: none;
+    color: var(--pg-ai-primary);
+    cursor: pointer;
+    font-size: 0.85rem;
+    padding: 0.25rem 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.pg-ai-chat-bubble a {
+    color: var(--pg-ai-primary);
+    text-decoration: underline;
+    word-break: break-all;
+}
+
+.pg-ai-chat-bubble-user a {
+    color: #fff;
+}
+
+/* Login page standalone AI chat widget */
+.pg-login-chat-toggle {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: #152b78;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1056;
+    font-size: 1.75rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s;
+    padding: 0;
+}
+
+.pg-login-chat-toggle i {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    font-size: 1.75rem;
+}
+
+.pg-login-chat-toggle:hover {
+    transform: scale(1.05);
+}
+
+.pg-login-chat-widget {
+    position: fixed;
+    bottom: 90px;
+    left: 20px;
+    width: 360px;
+    height: 520px;
+    max-height: calc(100vh - 110px);
+    background: #fff;
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+    display: none;
+    flex-direction: column;
+    z-index: 9999;
+    overflow: hidden;
+    direction: rtl;
+    --pg-ai-primary: #152b78;
+}
+
+.pg-login-chat-widget.open {
+    display: flex;
+}
+
+.pg-login-chat-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.75rem;
+    background: #152b78;
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.pg-login-chat-subtitle {
+    font-weight: 400;
+    font-size: 0.78rem;
+    opacity: 0.7;
+}
+
+.pg-login-chat-close-btn {
+    color: rgba(255, 255, 255, 0.8) !important;
+    line-height: 1;
+    font-size: 1.1rem;
+}
+
+.pg-login-chat-close-btn:hover {
+    color: #fff !important;
+}
+
+.pg-login-escalate-wrap {
+    padding: 0 0.5rem;
+    display: none;
+    direction: rtl;
+}
+
+.pg-login-escalate-wrap.visible {
+    display: block;
+}
+
+.pg-login-prechat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 1.25rem;
+    gap: 0.75rem;
+    direction: rtl;
+    overflow-y: auto;
+}
+
+.pg-login-prechat-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    text-align: center;
+    margin-bottom: 0.25rem;
+}
+
+.pg-login-prechat-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.pg-login-prechat-field label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #555;
+}
+
+.pg-login-prechat-field input:not([type="radio"]),
+.pg-login-prechat-field select,
+.pg-login-prechat-field textarea {
+    border: 1px solid #ddd;
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    outline: none;
+    direction: rtl;
+    resize: none;
+}
+
+.pg-login-prechat-field input[dir="ltr"] {
+    text-align: left;
+}
+
+.pg-login-prechat-field input:not([type="radio"]):focus,
+.pg-login-prechat-field select:focus,
+.pg-login-prechat-field textarea:focus {
+    border-color: #152b78;
+}
+
+
+.pg-login-prechat .form-check {
+    padding: 0;
+    margin: 0;
+}
+
+.pg-login-prechat .form-check .form-check-input {
+    float: none;
+    margin: 0;
+}
+
+.pg-login-escalate-info {
+    padding: 0.5rem 0.75rem;
+    background: #f0f4ff;
+    border-bottom: 1px solid #dde3f0;
+    font-size: 0.8rem;
+    color: #152b78;
+    font-weight: 500;
+    direction: rtl;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.pg-login-prechat-btn {
+    margin-top: 0.5rem;
+    background: #152b78;
+    color: #fff;
+    border: none;
+    border-radius: 0.5rem;
+    padding: 0.6rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.pg-login-prechat-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* The login help (assets/js/login_help_chat.js): answers as buttons under the bot's last message. */
+.pg-login-help { min-height: 0; }
+
+.pg-login-help-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-self: flex-end;
+    max-width: 92%;
+    margin-bottom: 0.5rem;
+}
+
+.pg-login-help-chip {
+    padding: 6px 12px;
+    border: 1px solid #cfd6ee;
+    border-radius: 999px;
+    background: #fff;
+    color: #152b78;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: background-color .16s cubic-bezier(.4, 0, .2, 1);
+}
+
+.pg-login-help-chip:hover { background: rgba(21, 43, 120, .06); }
+.pg-login-help-chip:active { transform: scale(.98); }
+
+.pg-login-help-chip:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #fff, 0 0 0 4px #152b78;
+}
+
+.pg-login-help-typing { color: #637381; }
+
+[data-bs-theme="dark"] .pg-login-help-chip {
+    border-color: #2c3a52;
+    background: #1e293b;
+    color: #c7d2fe;
+}
+
+[data-bs-theme="dark"] .pg-login-help-chip:hover { background: #223047; }
+[data-bs-theme="dark"] .pg-login-help-chip:focus-visible { box-shadow: 0 0 0 2px #1e293b, 0 0 0 4px #8b7dff; }
+[data-bs-theme="dark"] .pg-login-help-typing { color: #94a3b8; }
+
+@media (prefers-reduced-motion: reduce) {
+    .pg-login-help-chip { transition: none; }
+    .pg-login-help-chip:active { transform: none; }
+}
+
+@media (max-width: 576px) {
+    .pg-login-chat-widget {
+        bottom: 0;
+        left: 0;
+        width: 100vw;
+        height: 100dvh;
+        max-height: none;
+        border-radius: 0;
+    }
+
+    .pg-login-chat-toggle {
+        bottom: 16px;
+        left: 16px;
+    }
+}
+
+/* ── Action confirmation card ─────────────────────────────────────────────────
+   Shown when the AI proposes a change. It is deliberately NOT styled like a chat
+   bubble: this is the moment the user grants permission for a real write, and it
+   should read as a distinct thing to decide on, not as more conversation.
+   Once confirmed it becomes a building site (action_cards.js, Roi 03/10): blocks that
+   lock into place as the action advances, a progress bar, the live stages, and the
+   branded seal at the end. */
+.pg-ai-action-card {
+    --pga-ink: #1e1b4b;
+    --pga-muted: #64748b;
+    --pga-from: #4f46e5;
+    --pga-to: #7c3aed;
+    --pga-glow: rgba(99, 102, 241, 0.42);
+    --pga-surface: #ffffff;
+    --pga-tint: rgba(99, 102, 241, 0.06);
+    --pga-line: rgba(99, 102, 241, 0.24);
+    --pga-ok: #10b981;
+    --pga-bad: #f43f5e;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    /* The widget's message list is a flex column of fixed height (.pg-ai-chat-messages): an item with overflow hidden
+       has min-height 0 there and is squeezed to fit instead of scrolling — measured 04/10, the card shrank to its top
+       band and its buttons were cut off. It keeps its own height. */
+    flex-shrink: 0;
+    margin: 12px 0;
+    padding: 18px 16px 16px;
+    border: 1px solid var(--pga-line);
+    border-radius: 16px;
+    color: var(--pga-ink);
+    background: linear-gradient(180deg, rgba(99, 102, 241, 0.09), rgba(99, 102, 241, 0) 60%), var(--pga-surface);
+    box-shadow: 0 14px 34px -16px rgba(79, 70, 229, 0.45);
+    animation: pga-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+/* The moving band along the top edge, and a soft orb behind the heading */
+.pg-ai-action-card::before {
+    content: '';
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #06b6d4, var(--pga-from), var(--pga-to), #ec4899, #06b6d4);
+    background-size: 200% 100%;
+    animation: pga-flow 5s linear infinite;
+}
+
+.pg-ai-action-card::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    width: 200px;
+    height: 200px;
+    top: -110px;
+    inset-inline-end: -70px;
+    background: radial-gradient(circle, rgba(139, 92, 246, 0.2), transparent 65%);
+    pointer-events: none;
+}
+
+.pg-ai-action-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.pg-ai-action-icon {
+    position: relative;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 13px;
+    color: #fff;
+    font-size: 1.15rem;
+    background: linear-gradient(135deg, var(--pga-from), var(--pga-to));
+    box-shadow: 0 8px 18px -6px var(--pga-glow);
+}
+
+.pg-ai-action-icon::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+    border-radius: 16px;
+    border: 2px solid rgba(124, 58, 237, 0.35);
+    animation: pga-ring 2.4s ease-out infinite;
+}
+
+.pg-ai-action-heading {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.pg-ai-action-kicker {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--pga-from);
+}
+
+.pg-ai-action-title-text {
+    font-size: 0.98rem;
+    font-weight: 800;
+    line-height: 1.3;
+}
+
+/* The badge of a settled card (action_cards.js settle()) */
+.pg-ai-action-state {
+    margin-inline-start: auto;
+    padding: 3px 11px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    white-space: nowrap;
+    color: #475569;
+    background: rgba(100, 116, 139, 0.12);
+}
+
+.pg-ai-action-state:empty {
+    display: none;
+}
+
+.pg-ai-action-summary {
+    margin-bottom: 10px;
+    padding: 12px 14px;
+    border: 1px solid rgba(99, 102, 241, 0.14);
+    border-radius: 12px;
+    font-size: 0.86rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: var(--pga-tint);
+}
+
+/* The picture of what the card does: a screen's look (action_cards.js) */
+.pg-ai-action-preview {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    margin-bottom: 10px;
+    border: 1px solid rgba(99, 102, 241, 0.14);
+    border-radius: 12px;
+    object-fit: contain;
+    background: var(--pga-tint);
+}
+
+/* The form a create_digital_form card would save, as its people will see it (action_cards.js formFrame, PG-1146): a window of
+   fixed height over the form's top, scrolled inside; the fade at its foot says there is more below. */
+.pg-ai-action-form {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.pg-ai-action-form-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    padding-inline: 2px;
+    font-size: 0.74rem;
+    color: var(--pga-from);
+}
+
+.pg-ai-action-form-frame {
+    display: block;
+    width: 100%;
+    height: 420px;
+    border: 1px solid var(--pga-line);
+    border-radius: 12px;
+    background: var(--pga-surface);
+}
+
+.pg-ai-action-form::after {
+    content: '';
+    position: absolute;
+    inset-inline: 1px;
+    bottom: 1px;
+    height: 40px;
+    border-radius: 0 0 11px 11px;
+    pointer-events: none;
+    background: linear-gradient(to bottom, transparent, var(--pga-surface));
+}
+
+@media (max-width: 575.98px) {
+    .pg-ai-action-form-frame {
+        height: 360px;
+    }
+}
+
+.pg-ai-action-safe {
+    display: flex;
+    align-items: center;
+    margin-bottom: 12px;
+    font-size: 0.74rem;
+    color: var(--pga-muted);
+}
+
+/* The number of rows a big change in the database is approved with (db_change, action_cards.js) */
+.pg-ai-action-number {
+    max-width: 160px;
+    margin-bottom: 10px;
+}
+
+.pg-ai-action-buttons {
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+}
+
+.pg-ai-action-confirm,
+.pg-ai-action-cancel {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease, background-color 0.2s ease;
+}
+
+.pg-ai-action-confirm {
+    position: relative;
+    overflow: hidden;
+    flex: 1 1 auto;
+    padding: 10px 18px;
+    border: 0;
+    font-size: 0.92rem;
+    color: #fff;
+    background: linear-gradient(135deg, var(--pga-from), var(--pga-to));
+    box-shadow: 0 10px 22px -10px var(--pga-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.pg-ai-action-confirm:hover:not(:disabled) {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+    box-shadow: 0 14px 28px -10px rgba(99, 102, 241, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+.pg-ai-action-confirm:active:not(:disabled) {
+    transform: scale(0.985);
+}
+
+.pg-ai-action-confirm:focus-visible,
+.pg-ai-action-cancel:focus-visible {
+    outline: 3px solid rgba(99, 102, 241, 0.45);
+    outline-offset: 2px;
+}
+
+.pg-ai-action-confirm:disabled,
+.pg-ai-action-cancel:disabled {
+    cursor: default;
+    opacity: 0.7;
+}
+
+/* The light that sweeps across the confirm button */
+.pg-ai-action-shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, 0.42) 50%, transparent 65%);
+    transform: translateX(-130%);
+    animation: pga-shine 3.4s ease-in-out 0.8s infinite;
+    pointer-events: none;
+}
+
+.pg-ai-action-cancel {
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    border: 1px solid rgba(100, 116, 139, 0.32);
+    font-size: 0.84rem;
+    color: #475569;
+    background: transparent;
+}
+
+.pg-ai-action-cancel:hover:not(:disabled) {
+    color: #be123c;
+    border-color: rgba(244, 63, 94, 0.45);
+    background-color: rgba(244, 63, 94, 0.06);
+}
+
+/* ── The building site ── */
+.pg-ai-action-build {
+    animation: pga-in 0.35s ease both;
+}
+
+.pg-ai-action-build[hidden] {
+    display: none !important;
+}
+
+.pg-ai-action-card--building .pg-ai-action-buttons,
+.pg-ai-action-card--building .pg-ai-action-safe {
+    display: none;
+}
+
+.pg-ai-action-site {
+    position: relative;
+    display: grid;
+    place-items: center;
+    height: 132px;
+    overflow: hidden;
+    border-radius: 14px;
+    transition: height 0.5s ease;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+        radial-gradient(circle at 50% 120%, rgba(34, 211, 238, 0.28), transparent 60%),
+        linear-gradient(160deg, #1e1b4b, #312e81 55%, #4c1d95);
+    background-size: 16px 16px, 16px 16px, 100% 100%, 100% 100%;
+    animation: pga-blueprint 6s linear infinite;
+    box-shadow: inset 0 0 0 1px rgba(165, 180, 252, 0.18);
+}
+
+.pg-ai-action-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 24px);
+    gap: 7px;
+    transform: perspective(320px) rotateX(20deg);
+    transition: transform 0.55s cubic-bezier(0.5, 0, 0.2, 1), opacity 0.4s ease;
+}
+
+.pg-ai-action-block {
+    width: 24px;
+    height: 24px;
+    border: 1.5px dashed rgba(165, 180, 252, 0.7);
+    border-radius: 7px;
+    background: rgba(165, 180, 252, 0.06);
+    transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease;
+}
+
+.pg-ai-action-block.is-next {
+    border-style: solid;
+    border-color: #a5b4fc;
+    animation: pga-next 0.9s ease-in-out infinite;
+}
+
+.pg-ai-action-block.is-built {
+    border-color: transparent;
+    background: linear-gradient(135deg, #22d3ee, #6366f1 55%, #a855f7);
+    box-shadow: 0 0 12px rgba(129, 140, 248, 0.75);
+    animation: pga-drop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+}
+
+/* The scanning beam, and the sparks where the blocks land */
+.pg-ai-action-beam {
+    position: absolute;
+    inset-inline: 14%;
+    top: 20%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, #67e8f9, transparent);
+    box-shadow: 0 0 12px #22d3ee;
+    animation: pga-beam 1.7s ease-in-out infinite alternate;
+}
+
+.pg-ai-action-spark {
+    position: absolute;
+    bottom: 32%;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    opacity: 0;
+    background: #fde68a;
+    box-shadow: 0 0 8px #fbbf24;
+    animation: pga-spark 1.6s ease-out infinite;
+}
+
+.pg-ai-action-site > :nth-child(3) { inset-inline-start: 38%; animation-delay: 0.1s; }
+.pg-ai-action-site > :nth-child(4) { inset-inline-start: 52%; animation-delay: 0.6s; }
+.pg-ai-action-site > :nth-child(5) { inset-inline-start: 62%; animation-delay: 1.1s; }
+
+/* Settled: the site steps back to a band, the stages stay as the record */
+.pg-ai-action-card--done .pg-ai-action-site,
+.pg-ai-action-card--failed .pg-ai-action-site {
+    height: 96px;
+}
+
+/* The seal — the success animation's two SVGs on a white plate */
+.pg-ai-action-seal {
+    position: absolute;
+    width: 66px;
+    height: 66px;
+    padding: 7px;
+    border-radius: 50%;
+    opacity: 0;
+    background: #fff;
+    box-shadow: 0 0 0 7px rgba(16, 185, 129, 0.28), 0 12px 30px rgba(0, 0, 0, 0.35);
+    transform: scale(0.4);
+    transition: opacity 0.35s ease, transform 0.55s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+.pg-ai-action-card--sealed .pg-ai-action-grid {
+    opacity: 0;
+    transform: perspective(320px) rotateX(20deg) scale(0.2);
+}
+
+.pg-ai-action-card--sealed .pg-ai-action-seal {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.pg-ai-action-card--sealed .pg-ai-action-beam,
+.pg-ai-action-card--sealed .pg-ai-action-spark,
+.pg-ai-action-card--broken .pg-ai-action-beam,
+.pg-ai-action-card--broken .pg-ai-action-spark {
+    display: none;
+}
+
+.pg-ai-action-card--sealed .pg-ai-action-site {
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+        radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.45), transparent 62%),
+        linear-gradient(160deg, #064e3b, #065f46 55%, #312e81);
+}
+
+.pg-ai-action-card--broken .pg-ai-action-grid {
+    animation: pga-shake 0.45s ease both;
+}
+
+.pg-ai-action-card--broken .pg-ai-action-block.is-built {
+    background: linear-gradient(135deg, #fb7185, #e11d48);
+    box-shadow: 0 0 10px rgba(244, 63, 94, 0.6);
+}
+
+.pg-ai-action-card--broken .pg-ai-action-block.is-next {
+    animation: none;
+    border-color: rgba(251, 113, 133, 0.7);
+}
+
+/* The bar and its line */
+.pg-ai-action-meter {
+    margin-top: 12px;
+}
+
+.pg-ai-action-meter-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-size: 0.8rem;
+}
+
+.pg-ai-action-phase {
+    overflow: hidden;
+    font-weight: 700;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.pg-ai-action-pct {
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    color: var(--pga-from);
+}
+
+.pg-ai-action-bar {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.13);
+}
+
+.pg-ai-action-bar-fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #22d3ee, #6366f1, #a855f7, #22d3ee);
+    background-size: 200% 100%;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.55);
+    transition: width 0.25s ease-out;
+    animation: pga-flow 1.4s linear infinite;
+}
+
+.pg-ai-action-card--sealed .pg-ai-action-bar-fill {
+    background: linear-gradient(90deg, #34d399, var(--pga-ok));
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.55);
+}
+
+.pg-ai-action-card--sealed .pg-ai-action-pct {
+    color: var(--pga-ok);
+}
+
+.pg-ai-action-card--broken .pg-ai-action-bar-fill {
+    background: var(--pga-bad);
+    box-shadow: none;
+    animation: none;
+}
+
+.pg-ai-action-card--broken .pg-ai-action-pct,
+.pg-ai-action-card--broken .pg-ai-action-phase {
+    color: var(--pga-bad);
+}
+
+/* The live stages */
+.pg-ai-action-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin: 12px 0 0;
+    padding: 0;
+    list-style: none;
+}
+
+.pg-ai-action-feed-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 0.8rem;
+    color: var(--pga-muted);
+    animation: pga-line 0.35s ease both;
+}
+
+.pg-ai-action-feed-item.is-active {
+    font-weight: 700;
+    color: var(--pga-ink);
+}
+
+.pg-ai-action-feed-dot {
+    position: relative;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(99, 102, 241, 0.3);
+    border-radius: 50%;
+}
+
+.is-active > .pg-ai-action-feed-dot {
+    border-color: #6366f1;
+    border-top-color: transparent;
+    animation: pga-spin 0.8s linear infinite;
+}
+
+.is-done > .pg-ai-action-feed-dot,
+.is-failed > .pg-ai-action-feed-dot {
+    border: 0;
+    animation: pga-pop 0.3s ease both;
+}
+
+.is-done > .pg-ai-action-feed-dot {
+    background: var(--pga-ok);
+}
+
+.is-done > .pg-ai-action-feed-dot::after {
+    content: '';
+    width: 7px;
+    height: 4px;
+    margin-top: -2px;
+    border: solid #fff;
+    border-width: 0 0 2px 2px;
+    transform: rotate(-45deg);
+}
+
+.is-failed > .pg-ai-action-feed-dot {
+    background: var(--pga-bad);
+}
+
+.is-failed > .pg-ai-action-feed-dot::after {
+    content: '';
+    width: 8px;
+    height: 2px;
+    border-radius: 1px;
+    background: #fff;
+}
+
+.pg-ai-action-feed-item.is-failed {
+    font-weight: 700;
+    color: var(--pga-bad);
+}
+
+/* The outcome line — and, before it, a refusal that handed the buttons back */
+.pg-ai-action-status {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 0.84rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: var(--pga-tint);
+}
+
+/* What a ready module hands to its people (module_rollout.php) */
+.pg-ai-action-rollout {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 0.84rem;
+    line-height: 1.6;
+    background: var(--pga-tint);
+}
+
+.pg-ai-action-rollout-title {
+    font-weight: 700;
+}
+
+.pg-ai-action-rollout-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.pg-ai-action-rollout-message {
+    margin-top: 10px;
+}
+
+.pg-ai-action-rollout-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-weight: 700;
+}
+
+.pg-ai-action-rollout-body {
+    margin-top: 6px;
+    padding: 8px 10px;
+    max-height: 170px;
+    overflow-y: auto;
+    border-radius: 10px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    background: rgba(255, 255, 255, 0.7);
+}
+
+/* Settled states (set by action_cards.js) */
+.pg-ai-action-card--done {
+    border-color: rgba(16, 185, 129, 0.45);
+}
+
+.pg-ai-action-card--done::before {
+    background: linear-gradient(90deg, #34d399, var(--pga-ok));
+    animation: none;
+}
+
+.pg-ai-action-card--done .pg-ai-action-icon {
+    background: linear-gradient(135deg, #34d399, #059669);
+}
+
+.pg-ai-action-card--done .pg-ai-action-state {
+    color: #047857;
+    background: rgba(16, 185, 129, 0.14);
+}
+
+.pg-ai-action-card--done .pg-ai-action-status {
+    color: #065f46;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+.pg-ai-action-card--failed {
+    border-color: rgba(244, 63, 94, 0.45);
+}
+
+.pg-ai-action-card--failed::before {
+    background: var(--pga-bad);
+    animation: none;
+}
+
+.pg-ai-action-card--failed .pg-ai-action-icon {
+    background: linear-gradient(135deg, #fb7185, #e11d48);
+}
+
+.pg-ai-action-card--failed .pg-ai-action-state {
+    color: #be123c;
+    background: rgba(244, 63, 94, 0.12);
+}
+
+.pg-ai-action-card--failed .pg-ai-action-status {
+    color: #9f1239;
+    background: rgba(244, 63, 94, 0.08);
+}
+
+.pg-ai-action-card--cancelled {
+    border-color: rgba(148, 163, 184, 0.5);
+    opacity: 0.82;
+}
+
+.pg-ai-action-card--cancelled::before {
+    background: #94a3b8;
+    animation: none;
+}
+
+.pg-ai-action-card--cancelled .pg-ai-action-icon {
+    background: linear-gradient(135deg, #94a3b8, #64748b);
+    box-shadow: none;
+}
+
+.pg-ai-action-card--done .pg-ai-action-icon::after,
+.pg-ai-action-card--failed .pg-ai-action-icon::after,
+.pg-ai-action-card--cancelled .pg-ai-action-icon::after {
+    display: none;
+}
+
+/* Dark mode */
+[data-bs-theme="dark"] .pg-ai-action-card {
+    --pga-ink: #e0e7ff;
+    --pga-muted: #94a3b8;
+    --pga-surface: #1b1838;
+    --pga-tint: rgba(99, 102, 241, 0.16);
+    --pga-line: rgba(129, 140, 248, 0.32);
+    box-shadow: 0 14px 34px -16px rgba(0, 0, 0, 0.7);
+}
+
+[data-bs-theme="dark"] .pg-ai-action-kicker,
+[data-bs-theme="dark"] .pg-ai-action-form-head,
+[data-bs-theme="dark"] .pg-ai-action-pct {
+    color: #a5b4fc;
+}
+
+[data-bs-theme="dark"] .pg-ai-action-cancel {
+    color: #cbd5e1;
+    border-color: rgba(148, 163, 184, 0.35);
+}
+
+[data-bs-theme="dark"] .pg-ai-action-card--done .pg-ai-action-status {
+    color: #a7f3d0;
+    background: rgba(16, 185, 129, 0.16);
+}
+
+[data-bs-theme="dark"] .pg-ai-action-card--failed .pg-ai-action-status {
+    color: #fecdd3;
+    background: rgba(244, 63, 94, 0.14);
+}
+
+[data-bs-theme="dark"] .pg-ai-action-rollout .btn {
+    color: #c7d2fe;
+    border-color: rgba(199, 210, 254, 0.5);
+}
+
+[data-bs-theme="dark"] .pg-ai-action-rollout-body {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+[data-bs-theme="dark"] .pg-ai-action-state {
+    color: #cbd5e1;
+}
+
+[data-bs-theme="dark"] .pg-ai-action-card--done .pg-ai-action-state {
+    color: #6ee7b7;
+}
+
+[data-bs-theme="dark"] .pg-ai-action-card--failed .pg-ai-action-state {
+    color: #fda4af;
+}
+
+@keyframes pga-in {
+    from { opacity: 0; transform: translateY(10px) scale(0.985); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes pga-flow {
+    from { background-position: 0% 0; }
+    to { background-position: 200% 0; }
+}
+
+@keyframes pga-ring {
+    0% { opacity: 0.9; transform: scale(0.9); }
+    100% { opacity: 0; transform: scale(1.25); }
+}
+
+@keyframes pga-shine {
+    0%, 60% { transform: translateX(-130%); }
+    100% { transform: translateX(130%); }
+}
+
+@keyframes pga-blueprint {
+    from { background-position: 0 0, 0 0, 0 0, 0 0; }
+    to { background-position: 0 32px, 32px 0, 0 0, 0 0; }
+}
+
+@keyframes pga-next {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(165, 180, 252, 0); }
+    50% { box-shadow: 0 0 0 4px rgba(165, 180, 252, 0.35); }
+}
+
+@keyframes pga-drop {
+    0% { opacity: 0; transform: translateY(-16px) scale(0.6); }
+    100% { opacity: 1; transform: none; }
+}
+
+@keyframes pga-beam {
+    from { top: 18%; }
+    to { top: 82%; }
+}
+
+@keyframes pga-spark {
+    0% { opacity: 0; transform: translate(0, 0) scale(0.6); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: translate(10px, -42px) scale(1); }
+}
+
+@keyframes pga-shake {
+    0%, 100% { transform: perspective(320px) rotateX(20deg); }
+    25% { transform: perspective(320px) rotateX(20deg) translateX(-5px); }
+    75% { transform: perspective(320px) rotateX(20deg) translateX(5px); }
+}
+
+@keyframes pga-line {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes pga-spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pga-pop {
+    0% { transform: scale(0.4); }
+    70% { transform: scale(1.15); }
+    100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .pg-ai-action-card,
+    .pg-ai-action-card *,
+    .pg-ai-action-card::before,
+    .pg-ai-action-card *::after {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* the login chat opener is a <button> (2026-09-30, keyboard access): drop the browser's button chrome */
+button.pg-login-chat-toggle { border: 0; padding: 0; }
+
+/* ── The login chat on a page without Bootstrap (login_link.php, login_sms.php load general-pages.css only) ──
+   The layout classes the chat's markup uses, with Bootstrap's own values, scoped to the chat: on a Bootstrap page
+   nothing changes, and on those two pages the help panel and the form no longer show at the same time. */
+.pg-login-chat-widget .d-none { display: none !important; }
+.pg-login-chat-widget .d-flex { display: flex !important; }
+.pg-login-chat-widget .flex-column { flex-direction: column !important; }
+.pg-login-chat-widget .flex-grow-1 { flex-grow: 1 !important; }
+.pg-login-chat-widget .flex-wrap { flex-wrap: wrap !important; }
+.pg-login-chat-widget .align-items-center { align-items: center !important; }
+.pg-login-chat-widget .justify-content-center { justify-content: center !important; }
+.pg-login-chat-widget .gap-2 { gap: .5rem !important; }
+.pg-login-chat-widget .gap-3 { gap: 1rem !important; }
+.pg-login-chat-widget .mt-1 { margin-top: .25rem !important; }
+.pg-login-chat-widget .me-2 { margin-inline-end: .5rem !important; }
+.pg-login-chat-widget .ms-1 { margin-inline-start: .25rem !important; }
+.pg-login-chat-widget .p-0 { padding: 0 !important; }
+.pg-login-chat-widget .form-check { display: flex; align-items: center; min-height: 1.5rem; }
+
+/* The filters of the screen's tabs on a phone (PG-741). The panel sets every .form-select to
+   `display: inline-block; width: auto`, so in a full-width column each picker sat beside its label at the
+   width of its text, down to 68px. */
+@media (max-width: 575.98px) {
+    :is(#logs, #devRequests) .col-md-2 > .form-select,
+    #debugBotType {
+        display: block;
+        width: 100%;
+    }
+}

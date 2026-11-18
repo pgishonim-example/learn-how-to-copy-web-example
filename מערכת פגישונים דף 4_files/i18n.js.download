@@ -1,0 +1,116 @@
+/**
+ * pgT() / pgTc() — UI text in the viewer's language, the JavaScript side of
+ * www/inc/functions/i18n.php. The page head sets window.PG_I18N only for a viewer whose
+ * language is not Hebrew; without it both functions return their input, so a Hebrew
+ * screen is unchanged.
+ *
+ *   pgT('שמירה')                        the module's catalog, then 'common'
+ *   pgT('שלום {name}', {name: n})       values are inserted RAW — escape before inserting HTML
+ *   pgT('אישור', null, 'permit')        a context, when one page uses a word in two senses
+ *   pgTc('ביטול')                       shared scripts (header.js, datatable_config.js): 'common' only
+ *   pgTn('פגישה אחת', '{n} פגישות', n)  a count — the catalog key is the second text and maps to the
+ *                                       Arabic plural forms; Hebrew picks one/other exactly like tn()
+ */
+(function () {
+    'use strict';
+
+    function fill(text, vars) {
+        if (!vars) {
+            return text;
+        }
+        return text
+            .replace(/\{\?(\w+)\}([\s\S]*?)\{\/\1\}/g, function (m, key, body) {
+                const value = vars[key];
+                return value !== undefined && value !== null && String(value) !== '' ? body : '';
+            })
+            .replace(/\{(\w+)\}/g, function (m, key) {
+                return Object.prototype.hasOwnProperty.call(vars, key) ? String(vars[key]) : m;
+            });
+    }
+
+    function find(maps, text, ctx) {
+        const key = ctx ? ctx + '::' + text : text;
+        for (let i = 0; i < maps.length; i++) {
+            const map = maps[i];
+            if (map && typeof map[key] === 'string' && map[key] !== '') {
+                return map[key];
+            }
+        }
+        return text;
+    }
+
+    function data() {
+        return window.PG_I18N || {};
+    }
+
+    window.pgT = function (text, vars, ctx) {
+        const d = data();
+        return fill(find([d.module, d.common], String(text), ctx), vars);
+    };
+
+    window.pgTc = function (text, vars, ctx) {
+        return fill(find([data().common], String(text), ctx), vars);
+    };
+
+    // Placeholders only, no lookup: for text a PHP page already rendered in a specific
+    // language (a preview of a message that goes out in the SCHOOL's language, say), where
+    // translating it again in the viewer's language would be wrong.
+    window.pgFill = function (text, vars) {
+        return fill(String(text), vars);
+    };
+
+    window.pgLocale = function () {
+        return data().locale || 'he';
+    };
+
+    // CLDR cardinal categories, the same fixed rules as pgPluralCategory() in i18n.php.
+    function pluralCategory(locale, n) {
+        n = Math.abs(n);
+        if (locale === 'ar') {
+            if (n === 0) return 'zero';
+            if (n === 1) return 'one';
+            if (n === 2) return 'two';
+            const mod = n % 100;
+            if (mod >= 3 && mod <= 10) return 'few';
+            if (mod >= 11 && mod <= 99) return 'many';
+            return 'other';
+        }
+        // Hebrew has a dual; English does not. Asking for a 'two' form an English catalog
+        // never defines would miss the lookup. pgPluralCategory() in i18n.php is the twin.
+        if (locale === 'he') {
+            if (n === 1) return 'one';
+            if (n === 2) return 'two';
+            return 'other';
+        }
+        return n === 1 ? 'one' : 'other';
+    }
+
+    // tn() of i18n.php: {n} is the count unless vars carries its own n (a formatted number).
+    window.pgTn = function (one, other, n, vars, ctx) {
+        const d = data();
+        const count = parseInt(n, 10) || 0;
+        const all = Object.assign({}, vars || {});
+        if (!Object.prototype.hasOwnProperty.call(all, 'n')) {
+            all.n = count;
+        }
+        const hebrew = count === 1 ? String(one) : String(other);
+        const locale = d.locale || 'he';
+        if (locale === 'he') {
+            return fill(hebrew, all);
+        }
+        const key = ctx ? ctx + '::' + String(other) : String(other);
+        const maps = [d.module, d.common];
+        for (let i = 0; i < maps.length; i++) {
+            const found = maps[i] ? maps[i][key] : undefined;
+            if (found && typeof found === 'object') {
+                const form = found[pluralCategory(locale, count)] || found.other;
+                if (typeof form === 'string' && form !== '') {
+                    return fill(form, all);
+                }
+            } else if (typeof found === 'string' && found !== '') {
+                return fill(found, all);
+            }
+        }
+        return fill(hebrew, all);
+    };
+})();

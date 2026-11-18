@@ -1,0 +1,50 @@
+:root {
+	--bs-body-font-family: "RubikLocal", "RubikFallback", sans-serif;
+	--bs-heading-font-family: "RubikLocal", "RubikFallback", sans-serif;
+}
+
+/* The dark build (app-dark.rtl.css / app-dark.css) names Nunito at html[data-bs-theme=dark], which this site
+   does not ship, and it beats :root above: in dark mode every text that reads the variable fell back to a
+   system font (the guard's exit pass, the booking pages - PG-1160). This file loads after the dark build. */
+html[data-bs-theme=dark] {
+	--bs-body-font-family: "RubikLocal", "RubikFallback", sans-serif;
+	--bs-heading-font-family: "RubikLocal", "RubikFallback", sans-serif;
+}
+
+html,
+body,
+a,
+b,
+div,
+input,
+p,
+select,
+span,
+table,
+td,
+textarea,
+th,
+tr,
+button {
+	font-family: var(--bs-body-font-family) !important
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.h1,
+.h2,
+.h3,
+.h4,
+.h5,
+.h6 {
+	font-family: var(--bs-heading-font-family) !important
+}
+
+.tooltip,
+.popover {
+	font-family: var(--bs-body-font-family) !important
+}

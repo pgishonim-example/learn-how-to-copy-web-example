@@ -1,0 +1,12 @@
+function mathPage(type) {
+    var page = document.getElementById('pageNew').value;
+    if (type == 'add') {
+        updatePage(Number(page) + 1);
+    } else {
+        updatePage(Number(page) - 1);
+    }
+}
+function updatePage(num) {
+    document.getElementById('pageNew').value = num;
+    document.getElementById('submitPagination').click();
+}

@@ -1,0 +1,250 @@
+/*
+ * The team answered and the chat is closed (Amit, 14/10: "חיווי שמקבלים הודעה… שידעו שענו לו" · "תעשה אינטרקציה שיבינו
+ * ששלחו להם הודעה"): a small card by the chat button — the face and name of who answered and the start of the answer —
+ * and a count on the button, which pulses once. A tap opens the chat on the answer; nothing opens by itself.
+ *
+ * Shared by the three chats that hand over to a person — chat/assets/chat.js, the login pages' chat
+ * (chat/login_chat_widget.php) and the panel's own chat (M/inc/footer.php). Each passes its own button and its words,
+ * already in the viewer's language.
+ *
+ * show()  — a chat whose own poll got the answer while it was closed.
+ * watch() — a page whose chat is not loaded, in a session with a request open (chat_api.php sibWatchSet()): asks
+ *           chat_api.php 'human_poll' with peek=1 every 15 seconds (every minute after the first 10), only while the
+ *           page is on the screen and the chat is closed, and stops once the request is closed. A page with nothing
+ *           open never asks (Amit, 14/10: "שלא יתקע את המערכת").
+ */
+(function () {
+    'use strict';
+
+    const POLL_MS = 15000;
+    const SLOW_POLL_MS = 60000;
+    const SLOW_AFTER_MS = 10 * 60 * 1000;
+    const MIN_GAP_MS = 5000;   // coming back to the tab asks at once — but not again within this
+    const DISMISSED_KEY = 'pgSupportNoticeDismissed';
+
+    let card = null;
+    let current = null;
+    let lastPulsed = 0;
+    let watcher = null;
+
+    function dismissedId() {
+        try {
+            return Number(sessionStorage.getItem(DISMISSED_KEY)) || 0;
+        } catch (e) {
+            return 0;
+        }
+    }
+
+    function rememberDismissed(id) {
+        try {
+            sessionStorage.setItem(DISMISSED_KEY, String(id || 0));
+        } catch (e) {
+            // No storage: the card may come back on the next page — harmless.
+        }
+    }
+
+    /** Just above the chat button, on its side of the page; where the CSS puts it when the button is not on the screen. */
+    function place() {
+        if (!card || !current) return;
+        const launcher = current.launcher;
+        const r = launcher && launcher.isConnected ? launcher.getBoundingClientRect() : null;
+        if (!r || !r.width) {
+            card.style.bottom = '';
+            card.style.left = '';
+            card.style.right = '';
+            return;
+        }
+        card.style.bottom = Math.max(8, window.innerHeight - r.top + 10) + 'px';
+        const onLeft = r.left + r.width / 2 < window.innerWidth / 2;
+        card.style.left = onLeft ? Math.max(8, r.left) + 'px' : 'auto';
+        card.style.right = onLeft ? 'auto' : Math.max(8, window.innerWidth - r.right) + 'px';
+    }
+
+    function build() {
+        card = document.createElement('div');
+        card.className = 'pg-support-notice';
+        card.setAttribute('role', 'status');
+        card.setAttribute('aria-live', 'polite');
+
+        const open = document.createElement('button');
+        open.type = 'button';
+        open.className = 'pg-support-notice__open';
+        const avatar = document.createElement('img');
+        avatar.className = 'pg-support-notice__avatar';
+        avatar.alt = '';
+        const words = document.createElement('span');
+        words.className = 'pg-support-notice__words';
+        const name = document.createElement('span');
+        name.className = 'pg-support-notice__name';
+        const text = document.createElement('span');
+        text.className = 'pg-support-notice__text';
+        words.appendChild(name);
+        words.appendChild(text);
+        open.appendChild(avatar);
+        open.appendChild(words);
+
+        const close = document.createElement('button');
+        close.type = 'button';
+        close.className = 'pg-support-notice__close';
+        close.innerHTML = '<i class="bi bi-x-lg" aria-hidden="true"></i>';
+
+        card.appendChild(open);
+        card.appendChild(close);
+        document.body.appendChild(card);
+
+        open.addEventListener('click', function () {
+            const shown = current;
+            hide();
+            if (shown && typeof shown.onOpen === 'function') shown.onOpen();
+        });
+        // Closing the card keeps the count on the button: the answer is still there to read.
+        close.addEventListener('click', function () {
+            if (current) rememberDismissed(current.messageId);
+            card.classList.remove('is-shown');
+        });
+        window.addEventListener('resize', place);
+    }
+
+    /** The count on the button: the chat's own badge when it has one (opts.setCount), else a small one of ours. */
+    function setCount(opts, n) {
+        if (!opts) return;
+        if (typeof opts.setCount === 'function') {
+            opts.setCount(n);
+            return;
+        }
+        const launcher = opts.launcher;
+        if (!launcher) return;
+        let badge = launcher.querySelector('.pg-support-notice-count');
+        if (!badge && n > 0) {
+            badge = document.createElement('span');
+            badge.className = 'pg-support-notice-count';
+            launcher.appendChild(badge);
+        }
+        if (!badge) return;
+        badge.textContent = n > 9 ? '9+' : String(n);
+        badge.classList.toggle('is-on', n > 0);
+    }
+
+    /**
+     * opts: launcher (the chat button), name, avatar (address), text, count, messageId, onOpen(), closeLabel,
+     * setCount(n) (optional — the chat's own badge).
+     */
+    function show(opts) {
+        if (!opts || !opts.launcher) return;
+        if (!card) build();
+        current = opts;
+        setCount(opts, Math.max(1, Number(opts.count) || 1));
+
+        // The button pulses once per new answer — not again on every check of the same one.
+        const id = Number(opts.messageId) || 0;
+        if (id !== lastPulsed) {
+            lastPulsed = id;
+            opts.launcher.classList.remove('pg-support-notice-pulse');
+            void opts.launcher.offsetWidth;   // restart the animation
+            opts.launcher.classList.add('pg-support-notice-pulse');
+            opts.launcher.addEventListener('animationend', function done() {
+                opts.launcher.classList.remove('pg-support-notice-pulse');
+                opts.launcher.removeEventListener('animationend', done);
+            });
+        }
+
+        const avatar = card.querySelector('.pg-support-notice__avatar');
+        if (opts.avatar) {
+            avatar.src = opts.avatar;
+            avatar.hidden = false;
+        } else {
+            avatar.hidden = true;
+        }
+        card.querySelector('.pg-support-notice__name').textContent = opts.name || '';
+        card.querySelector('.pg-support-notice__text').textContent = opts.text || '';
+        card.querySelector('.pg-support-notice__open').setAttribute('aria-label', (opts.name || '') + ': ' + (opts.text || ''));
+        const close = card.querySelector('.pg-support-notice__close');
+        close.setAttribute('aria-label', opts.closeLabel || '');
+        close.title = opts.closeLabel || '';
+
+        if (id && id === dismissedId()) {
+            card.classList.remove('is-shown');   // closed once already — the count says it is still there
+            return;
+        }
+        place();
+        card.classList.add('is-shown');
+    }
+
+    /** The chat is open (or the answer was read): no card, no count. */
+    function hide() {
+        if (card) card.classList.remove('is-shown');
+        if (current) setCount(current, 0);
+        current = null;
+    }
+
+    function onVisible() {
+        if (!document.hidden && watcher && Date.now() - watcher.lastAt >= MIN_GAP_MS) watcher.tick();
+    }
+
+    /**
+     * opts: url (chat_api.php 'human_poll' for this chat — peek=1 is added), launcher() (the button, asked each time),
+     * isOpen() (the chat is on the screen), onOpen(), closeLabel, setCount(n) (optional). Called again, it starts over.
+     */
+    function watch(opts) {
+        stopWatch();
+        if (!opts || !opts.url) return;
+        const url = opts.url + (opts.url.indexOf('?') === -1 ? '?' : '&') + 'peek=1';
+        const own = { busy: false, timer: null, tick: null, lastAt: 0, startedAt: Date.now(), slow: false };
+        watcher = own;
+        own.tick = function () {
+            if (watcher !== own || own.busy || document.hidden) return;
+            if (typeof opts.isOpen === 'function' && opts.isOpen()) return;   // the chat's own poll shows the answer
+            // A request can wait for hours (overnight): after the first minutes, once a minute is enough.
+            if (!own.slow && Date.now() - own.startedAt > SLOW_AFTER_MS) {
+                own.slow = true;
+                clearInterval(own.timer);
+                own.timer = setInterval(own.tick, SLOW_POLL_MS);
+            }
+            own.busy = true;
+            own.lastAt = Date.now();
+            fetch(url, { credentials: 'same-origin' })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    if (watcher !== own) return;
+                    if (!data || data.status !== 'ok' || !data.human) {
+                        // Nothing open any more (or the screen is off): stop asking.
+                        stopWatch();
+                        hide();
+                        return;
+                    }
+                    // Closed with an answer still to read: no new one can come — the card stays, the asking stops.
+                    if (data.open === 0) stopWatch();
+                    if (Number(data.unseen) > 0 && data.last && !(typeof opts.isOpen === 'function' && opts.isOpen())) {
+                        show({
+                            launcher: opts.launcher(),
+                            name: data.last.agent,
+                            avatar: data.last.avatar,
+                            text: data.last.text,
+                            count: data.unseen,
+                            messageId: data.last.id,
+                            onOpen: opts.onOpen,
+                            closeLabel: opts.closeLabel,
+                            setCount: opts.setCount
+                        });
+                    } else if (!Number(data.unseen)) {
+                        hide();
+                    }
+                })
+                .catch(function () {})   // offline for a moment — the next round asks again
+                .finally(function () { own.busy = false; });
+        };
+        own.timer = setInterval(own.tick, POLL_MS);
+        document.addEventListener('visibilitychange', onVisible);
+        own.tick();
+    }
+
+    function stopWatch() {
+        if (watcher) {
+            clearInterval(watcher.timer);
+            watcher = null;
+        }
+        document.removeEventListener('visibilitychange', onVisible);
+    }
+
+    window.pgSupportNotice = { show: show, hide: hide, watch: watch, stopWatch: stopWatch };
+})();

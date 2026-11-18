@@ -1,0 +1,857 @@
+/**
+ * action_cards.js
+ *
+ * The confirm/cancel card for a pending AI action proposal — shared by the floating chat
+ * widget (chat.js) and the owner console (console.js).
+ *
+ * The proposal arrives as an SSE event `data: {"action_proposal": {action_id, token, summary, label}}`.
+ * The token is the human's consent carrier: it travels from the stream into this card and from
+ * the card into the POST — never into a text bubble, never to the model.
+ *
+ * THE CARD (Roi, 03/10: "מסך אישור שמעוצב ממש מטורף … ואז שאישרתי שיהיה אנימציה מטורפת של הבניה … עם
+ * פידבקים בלייב על התקדמות הפעולה"): a summary to decide on and one confirm button; once confirmed, a
+ * building site — blocks that lock into place as the action advances, a progress bar, and a feed of
+ * the stages the server reports while it runs. It ends in the branded seal (the success animation's
+ * two SVGs), or in red with the reason.
+ *
+ * The stages are real: the confirm POST carries stream=1 and chat_action_sql.php answers one JSON
+ * line per stage as the action runs ({"progress": {"stage": …}}), then the usual response as
+ * {"result": …}. A line that is neither is a plain response (a refusal before anything ran). The
+ * bar moves on between stages so it never looks stuck, but never past what the stages allow, and
+ * only the server's answer takes it to 100.
+ *
+ * Markup classes live in chatbot.css, which is loaded by every surface that renders a card.
+ *
+ * Server contract (chat_action_sql.php, the ajax_header response shape):
+ *   confirm → {status, msg, action_id, queued, result_message}
+ *             + need_number (an error: a big db_change waits for its number of rows typed — nothing was claimed)
+ *             + customer_message (message_to_customer: the approved text, for opts.onSend)
+ *   cancel  → {status, msg}
+ *   status  → {status_key, finished, status_text}
+ */
+(function () {
+  'use strict';
+
+  // The badge text for a settled card, keyed by the class suffix settle() applies.
+  const STATE_LABELS = {
+    done: pgTc('בוצע'),
+    failed: pgTc('נכשל'),
+    cancelled: pgTc('בוטל'),
+    running: pgTc('בביצוע')
+  };
+
+  // Why a card from the journal was cancelled (chat_api.php 'actions' — chat_ai_actions.error holds a code), in words.
+  const CANCEL_REASONS = {
+    superseded: pgTc('הבקשה הוחלפה בבקשה חדשה יותר. לא בוצע שום שינוי.'),
+    declined: pgTc('הפעולה בוטלה ולא בוצע שום שינוי'),
+    expired: pgTc('פג תוקף הבקשה, ולא בוצע שום שינוי.')
+  };
+
+  // How far the bar may go once a stage is reported (it creeps a little past it while the next one is on its way).
+  const STAGE_PCT = { confirm: 6, claimed: 16, start: 26, write: 52, queue_send: 48, screen_send: 44, screen_check: 78, queued: 60 };
+  const BLOCKS = 12;
+  // A fast action still shows the site being built before the seal — the success animation's floor does the same.
+  const MIN_BUILD_MS = 1700;
+  const SEAL_MS = 1100;
+  const IMG = '/assets/compiled/images/';
+
+  const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /** The words for a stage the server reported. */
+  function stageText(p) {
+    switch (p.stage) {
+      case 'confirm': return pgTc('שולח את האישור');
+      case 'claimed': return pgTc('האישור התקבל');
+      case 'start': return p.label ? pgTc('מבצע: {label}', { label: pgTc(p.label) }) : pgTc('מבצע את הפעולה');
+      case 'step': return pgTc('שלב {n} מתוך {of}: {label}', { n: p.n, of: p.of, label: pgTc(p.label || '') });
+      case 'screen_send': return pgTc('שולח את הבקשה למסך, בשמך');
+      case 'screen_check': return pgTc('המסך ענה, בודק את התוצאה');
+      case 'write': return pgTc('כותב את השינויים');
+      case 'queue_send': return pgTc('מכניס את ההפצה לתור השליחה');
+      case 'queued': return pgTc('הפעולה בתור לביצוע');
+      default: return '';
+    }
+  }
+
+  function stagePct(p) {
+    if (p.stage === 'step' && p.of > 0) {
+      return 26 + Math.round(64 * (Math.max(1, p.n) - 1) / p.of);
+    }
+    return STAGE_PCT[p.stage] || 0;
+  }
+
+  /**
+   * Retire every card in this container that is still waiting for an answer.
+   *
+   * The server allows exactly one open proposal per conversation: chatActionPropose()
+   * (pending.php:114-119) cancels the previous row with error='superseded' before recording the
+   * new one. The screen did not carry that truth. Measured 2026-09-03 (22-FINISH-LINE-QA §4):
+   * one turn drew four cards, three of them already cancelled in the database, all four with
+   * live אישור/ביטול buttons. Clicking a dead one answered "לא ניתן לאשר את הפעולה", which
+   * reads as a malfunction rather than "this request was replaced".
+   *
+   * The gate that was supposed to prevent this (runner.php:79-84) talks to the MODEL — it asks
+   * it to tell the operator. In both measured runs the model said nothing. A gate that depends
+   * on the model explaining itself is not a gate; the card is the only thing that knows.
+   *
+   * A card that is mid-execution is deliberately left alone: the server supersedes rows still
+   * in 'proposed' only, so a confirmed or queued card is still real work in flight.
+   */
+  function supersedeOpenCards(container) {
+    const open = container.querySelectorAll('.pg-ai-action-card[data-pg-open="1"]');
+    for (let i = 0; i < open.length; i++) {
+      if (typeof open[i].pgSupersede === 'function') {
+        open[i].pgSupersede();
+      }
+    }
+  }
+
+  /**
+   * Where the card's buttons POST. A proposal may name its own endpoint: the parent's / teacher's /
+   * student's own tools answer at /chat/self_service_sql.php (www/chat/self_service.php) — the staff
+   * endpoint refuses a public session. Only a same-site .php path is taken from it ("//host/x.php" is another site).
+   */
+  function endpointUrl(proposal) {
+    if (proposal && typeof proposal.endpoint === 'string' && /^\/(?!\/)[A-Za-z0-9_\/.-]+\.php$/.test(proposal.endpoint)
+        && proposal.endpoint.indexOf('..') === -1) {
+      return proposal.endpoint;
+    }
+    const cfg = window.PG_CHAT || {};
+    if (cfg.aiChatApiUrl) {
+      return cfg.aiChatApiUrl.replace(/chat_api\.php$/, 'chat_action_sql.php');
+    }
+    return '/M/chat/support/chat_action_sql.php';
+  }
+
+  function request(body, url) {
+    return fetch(url || endpointUrl(), {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: new URLSearchParams(body).toString()
+    });
+  }
+
+  function post(body, url) {
+    return request(body, url).then(function (r) {
+      return r.json();
+    });
+  }
+
+  /**
+   * The confirm POST, read line by line as the server writes it. onProgress(stage) for each
+   * {"progress"} line; resolves with the response — the {"result"} line, or a plain response line.
+   */
+  function postStream(body, onProgress, url) {
+    return request(body, url).then(function (r) {
+      let result = null;
+      let rest = '';
+      function take(line) {
+        line = line.trim();
+        if (line === '') return;
+        let obj = null;
+        try { obj = JSON.parse(line); } catch (e) { return; }
+        if (obj && obj.progress) {
+          onProgress(obj.progress);
+        } else if (obj && obj.result) {
+          result = obj.result;
+        } else if (obj && result === null) {
+          result = obj;
+        }
+      }
+      function lines(text, final) {
+        rest += text;
+        const parts = rest.split('\n');
+        rest = final ? '' : parts.pop();
+        parts.forEach(take);
+        if (final) take(rest);
+      }
+      if (!r.body || typeof r.body.getReader !== 'function' || typeof TextDecoder === 'undefined') {
+        return r.text().then(function (t) { lines(t, true); return result; });
+      }
+      const reader = r.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      function pump() {
+        return reader.read().then(function (chunk) {
+          if (chunk.done) {
+            lines(decoder.decode(), true);
+            return result;
+          }
+          lines(decoder.decode(chunk.value, { stream: true }), false);
+          return pump();
+        });
+      }
+      return pump();
+    });
+  }
+
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  // The forms' preview (M/digital_signature/assets/js/form_preview.js), loaded the first time a card needs it: the pages that
+  // draw cards do not load it themselves. Only the panel's own file, with the stylesheets the server named for it.
+  let formPreviewLoaded = null;
+  function loadFormPreview(src, styles) {
+    if (window.dsFormPreviewDoc) return Promise.resolve();
+    if (!/^\/M\/digital_signature\/assets\/js\/form_preview\.js(\?v=\d+)?$/.test(src || '')) return Promise.reject(new Error('src'));
+    if (!formPreviewLoaded) {
+      formPreviewLoaded = new Promise(function (resolve, reject) {
+        const script = document.createElement('script');
+        script.src = src;
+        script.dataset.styles = JSON.stringify(Array.isArray(styles) ? styles : []);
+        script.onload = resolve;
+        script.onerror = function () { formPreviewLoaded = null; reject(new Error('load')); };
+        document.head.appendChild(script);
+      });
+    }
+    return formPreviewLoaded;
+  }
+
+  const FORM_SIGNERS = {
+    P: pgTc('כך ההורים יראו את הטופס'),
+    S: pgTc('כך התלמידים יראו את הטופס'),
+    T: pgTc('כך המורים יראו את הטופס')
+  };
+
+  /**
+   * A create_digital_form card shows the form it would save, as its people will see it (PG-1146, Roi 13/11: "שיראה איך זה
+   * יראה"): the form's own file, built by the server from the card (chat_action_sql.php form_preview), in a frame of the forms'
+   * preview — nothing is submitted out of it. Above the summary. Shown once it is there; a form that could not be built leaves
+   * the card as it was.
+   */
+  function formFrame(before, body, url) {
+    const box = el('div', 'pg-ai-action-form');
+    box.hidden = true;
+    const head = el('div', 'pg-ai-action-form-head');
+    head.appendChild(el('i', 'bi bi-eye')).setAttribute('aria-hidden', 'true');
+    const label = head.appendChild(el('span', '', FORM_SIGNERS.P));
+    const frame = el('iframe', 'pg-ai-action-form-frame');
+    frame.title = FORM_SIGNERS.P;
+    box.appendChild(head);
+    box.appendChild(frame);
+    before.parentNode.insertBefore(box, before);
+    post(body, url).then(function (data) {
+      if (!data || data.status !== 'success' || typeof data.html !== 'string') throw new Error('build');
+      return loadFormPreview(data.script, data.styles).then(function () {
+        label.textContent = frame.title = FORM_SIGNERS[data.kind] || FORM_SIGNERS.P;
+        frame.srcdoc = window.dsFormPreviewDoc(data.html);
+        box.hidden = false;
+      });
+    }).catch(function () {
+      box.remove();
+    });
+  }
+
+  /**
+   * Render one proposal card and append it to $container.
+   *
+   * @param {HTMLElement} container  scrollable messages area the card is appended to
+   * @param {Object}      proposal   {action_id, token, summary, label}
+   * @param {Object}      opts       {onSettled(state, how), ownerSchoolId, onTell(text), onSend(text)} — how: {clicked: this
+   *                                 card's own "אישור וביצוע" ran it, actionId, kind, toCustomer}
+   * @returns {HTMLElement} the card element, or null when the proposal is unusable
+   */
+  /**
+   * What a school passes on to its people (module_rollout.php): each message with a copy button, the flyers and videos as links.
+   * Under a card whose action made a module ready, and on the panel home when the assistant writes [MATERIALS:…].
+   */
+  function rolloutBlock(data) {
+    const box = document.createElement('div');
+    box.className = 'pg-ai-action-rollout';
+    const title = document.createElement('div');
+    title.className = 'pg-ai-action-rollout-title';
+    title.textContent = data.title || '';
+    const text = document.createElement('div');
+    text.textContent = data.text || '';
+    box.append(title, text);
+    (data.messages || []).forEach(function (message) {
+      const item = document.createElement('div');
+      item.className = 'pg-ai-action-rollout-message';
+      const head = document.createElement('div');
+      head.className = 'pg-ai-action-rollout-head';
+      const label = document.createElement('span');
+      label.textContent = message.label || '';
+      const copy = document.createElement('button');
+      copy.type = 'button';
+      copy.className = 'btn btn-sm btn-outline-primary';
+      copy.textContent = data.copy || '';
+      copy.addEventListener('click', function () {
+        navigator.clipboard.writeText(message.text || '').then(function () {
+          copy.textContent = data.copied || '';
+          setTimeout(function () { copy.textContent = data.copy || ''; }, 2000);
+        });
+      });
+      head.append(label, copy);
+      const body = document.createElement('div');
+      body.className = 'pg-ai-action-rollout-body';
+      body.textContent = message.text || '';
+      item.append(head, body);
+      box.appendChild(item);
+    });
+    const links = document.createElement('div');
+    links.className = 'pg-ai-action-rollout-links';
+    (data.links || []).forEach(function (link) {
+      // A link is only ever one the server built: the flyer's short link, a video, or a screen of this panel.
+      const external = /^https:\/\//.test(link.url || '');
+      if (!external && !/^\/M\/[A-Za-z0-9_\/.]*$/.test(link.url || '')) return;
+      const a = document.createElement('a');
+      a.className = 'btn btn-sm btn-outline-primary';
+      a.href = link.url;
+      if (external) {
+        a.target = '_blank';
+        a.rel = 'noopener';
+      }
+      a.textContent = link.label || link.url;
+      links.appendChild(a);
+    });
+    box.appendChild(links);
+    return box;
+  }
+  window.pgAiRolloutBlock = rolloutBlock;
+
+  window.pgAppendActionCard = function (container, proposal, opts) {
+    opts = opts || {};
+    if (!container || !proposal || !(proposal.action_id > 0)) {
+      return null;
+    }
+    // A card from the journal that is no longer open (reopening a chat — chat_api.php 'actions'): drawn as the record of
+    // what happened, settled at once, with no buttons and no building site. It retires no other card.
+    const record = !!proposal.state && proposal.state !== 'open';
+    const url = endpointUrl(proposal);
+
+    // Before anything is drawn: the row this card replaces is already cancelled server-side.
+    if (!record) {
+      supersedeOpenCards(container);
+    }
+
+    const card = document.createElement('div');
+    card.className = 'pg-ai-action-card';
+    // The card's end in view while it runs: the messages area scrolls to its bottom — or, where the area does not scroll
+    // itself (the panel home: its thread sits in a scroller of its own, menu_assistant.php #mhaScroll), the card's end is
+    // brought into view (Amit, 28/10: "צריך לגלול למטה כי אני לא רואה שהוא עושה משהו"). Only a live card: a record drawn
+    // on reopening a conversation moves nothing on the page.
+    // $line: what has to be seen now. A card taller than the screen is "in view" as it is, so asking for the card itself left its
+    // running step and its outcome under the screen's edge (Roi, 03/11).
+    function toEnd(line) {
+      container.scrollTop = container.scrollHeight;
+      // a container that scrolls itself (the widget, the console) is done above, even before it is full
+      const scrolls = /(auto|scroll)/.test(window.getComputedStyle(container).overflowY || '');
+      if (!record && !scrolls && card.isConnected && card.scrollIntoView) {
+        (line || card).scrollIntoView({ block: 'nearest', behavior: reducedMotion ? 'auto' : 'smooth' });
+      }
+    }
+    // "Open" = still answerable. Cleared the moment a button is pressed or the card settles,
+    // so a later proposal never retires a card that is already executing.
+    card.dataset.pgOpen = '1';
+    // Which journal row this is — the open console finds the waiting card a "כן" in words answered (console.js).
+    card.dataset.pgActionId = String(parseInt(proposal.action_id, 10) || 0);
+    let blocks = '';
+    for (let b = 0; b < BLOCKS; b++) {
+      blocks += '<span class="pg-ai-action-block"></span>';
+    }
+    card.innerHTML =
+      '<div class="pg-ai-action-head">' +
+        '<span class="pg-ai-action-icon" aria-hidden="true"><i class="bi bi-stars"></i></span>' +
+        '<span class="pg-ai-action-heading">' +
+          '<span class="pg-ai-action-kicker"></span>' +
+          '<span class="pg-ai-action-title-text"></span>' +
+        '</span>' +
+        '<span class="pg-ai-action-state"></span>' +
+      '</div>' +
+      '<div class="pg-ai-action-summary"></div>' +
+      '<div class="pg-ai-action-safe">' +
+        '<i class="bi bi-shield-lock me-1" aria-hidden="true"></i><span></span>' +
+      '</div>' +
+      '<div class="pg-ai-action-buttons">' +
+        '<button type="button" class="pg-ai-action-confirm">' +
+          '<span class="pg-ai-action-shine" aria-hidden="true"></span>' +
+          '<i class="bi bi-lightning-charge-fill me-2"></i><span class="pg-ai-action-confirm-text"></span>' +
+        '</button>' +
+        '<button type="button" class="pg-ai-action-cancel">' +
+          '<i class="bi bi-x-lg me-1"></i><span class="pg-ai-action-cancel-text"></span>' +
+        '</button>' +
+      '</div>' +
+      '<div class="pg-ai-action-build" hidden>' +
+        '<div class="pg-ai-action-site" aria-hidden="true">' +
+          '<div class="pg-ai-action-grid">' + blocks + '</div>' +
+          '<span class="pg-ai-action-beam"></span>' +
+          '<span class="pg-ai-action-spark"></span><span class="pg-ai-action-spark"></span><span class="pg-ai-action-spark"></span>' +
+          '<img class="pg-ai-action-seal" alt="" src="' + IMG + 'logo_circle_check_admin.svg">' +
+        '</div>' +
+        '<div class="pg-ai-action-meter">' +
+          '<div class="pg-ai-action-meter-top">' +
+            '<span class="pg-ai-action-phase"></span>' +
+            '<span class="pg-ai-action-pct">0%</span>' +
+          '</div>' +
+          '<div class="pg-ai-action-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">' +
+            '<span class="pg-ai-action-bar-fill"></span>' +
+          '</div>' +
+        '</div>' +
+        '<ol class="pg-ai-action-feed" aria-live="polite"></ol>' +
+      '</div>' +
+      '<div class="pg-ai-action-status d-none"></div>';
+
+    // Plain text, never HTML — the summary and the label carry school/people names from the database.
+    card.querySelector('.pg-ai-action-kicker').textContent = pgTc('בקשה לביצוע פעולה');
+    card.querySelector('.pg-ai-action-title-text').textContent = proposal.label ? pgTc(proposal.label) : pgTc('ממתין לאישור שלך');
+    card.querySelector('.pg-ai-action-summary').textContent = proposal.summary || '';
+    // The picture of what the card does — a screen's look (panel_split_panel.php). Only the panel's own template pictures.
+    if (/^\/M\/monitors\/split_panel\/templates\/layout\d+\/(?:images|backgrounds(?:\/thumbs)?)\/[A-Za-z0-9_-]+\.(?:png|jpe?g)$/.test(proposal.preview || '')) {
+      const pic = document.createElement('img');
+      pic.className = 'pg-ai-action-preview';
+      pic.src = proposal.preview;
+      pic.alt = '';
+      card.querySelector('.pg-ai-action-summary').after(pic);
+    }
+    // The form a create_digital_form card would save (PG-1146) — while the card can still be answered.
+    if (proposal.preview === 'digital_form' && !record) {
+      formFrame(card.querySelector('.pg-ai-action-summary'), postBody('form_preview'), url);
+    }
+    card.querySelector('.pg-ai-action-safe span').textContent = pgTc('שום דבר לא משתנה עד שתאשרו');
+    card.querySelector('.pg-ai-action-confirm-text').textContent = pgTc('אישור וביצוע');
+    card.querySelector('.pg-ai-action-cancel-text').textContent = pgTc('ביטול');
+
+    const stateEl = card.querySelector('.pg-ai-action-state');
+    const statusEl = card.querySelector('.pg-ai-action-status');
+    const buttonsEl = card.querySelector('.pg-ai-action-buttons');
+    const safeEl = card.querySelector('.pg-ai-action-safe');
+    const btnConfirm = card.querySelector('.pg-ai-action-confirm');
+    const btnCancel = card.querySelector('.pg-ai-action-cancel');
+    const buildEl = card.querySelector('.pg-ai-action-build');
+    const blockEls = card.querySelectorAll('.pg-ai-action-block');
+    const sealEl = card.querySelector('.pg-ai-action-seal');
+    const phaseEl = card.querySelector('.pg-ai-action-phase');
+    const pctEl = card.querySelector('.pg-ai-action-pct');
+    const barEl = card.querySelector('.pg-ai-action-bar');
+    const fillEl = card.querySelector('.pg-ai-action-bar-fill');
+    const feedEl = card.querySelector('.pg-ai-action-feed');
+    let settled = false;
+    // Whether its own "אישור וביצוע" was pressed — and not a "כן" written in the chat, a reload or the journal that settled it.
+    let clicked = false;
+    // What its "כתוב ללקוח" drafts: the outcome line, until the answer after it brings the message for the customer (PG-929).
+    let told = '';
+    let pollTimer = null;
+    // A big change in the database (db_change) is approved with its number of rows typed. The server answers the first
+    // click with need_number and the card grows a field for it; whether the number is right is the server's decision.
+    let numberInput = null;
+
+    // ── The building site ──
+    let pct = 0;          // what the bar shows
+    let target = 0;       // what the last reported stage allows
+    let creepTimer = null;
+    let startedAt = 0;
+    let lastStatusText = '';
+
+    function paint() {
+      const shown = Math.round(pct);
+      fillEl.style.width = shown + '%';
+      pctEl.textContent = shown + '%';
+      barEl.setAttribute('aria-valuenow', String(shown));
+      const built = Math.min(BLOCKS, Math.floor(pct / 100 * BLOCKS + 0.0001));
+      for (let i = 0; i < blockEls.length; i++) {
+        blockEls[i].classList.toggle('is-built', i < built);
+        blockEls[i].classList.toggle('is-next', i === built && built < BLOCKS);
+      }
+    }
+
+    function creep() {
+      if (creepTimer) return;
+      creepTimer = setInterval(function () {
+        // Quickly up to the last reported stage, then slowly a little past it while the next one is on its way —
+        // never to the end: only the server's answer finishes the bar.
+        const cap = Math.min(94, target + 12);
+        if (pct < target) {
+          pct = Math.min(target, pct + Math.max(0.6, (target - pct) * 0.2));
+          paint();
+        } else if (pct < cap) {
+          pct = Math.min(cap, pct + Math.max(0.1, (cap - pct) * 0.03));
+          paint();
+        }
+      }, 120);
+    }
+
+    function stopCreep() {
+      if (creepTimer) { clearInterval(creepTimer); creepTimer = null; }
+    }
+
+    function feedLine(text) {
+      if (!text) return;
+      const prev = feedEl.querySelector('.is-active');
+      if (prev) {
+        prev.classList.remove('is-active');
+        prev.classList.add('is-done');
+      }
+      const li = el('li', 'pg-ai-action-feed-item is-active');
+      li.appendChild(el('span', 'pg-ai-action-feed-dot'));
+      li.appendChild(el('span', 'pg-ai-action-feed-text', text));
+      feedEl.appendChild(li);
+      phaseEl.textContent = text;
+      toEnd(li);
+    }
+
+    function progress(p) {
+      const text = stageText(p);
+      if (text) feedLine(text);
+      target = Math.max(target, stagePct(p));
+      if (reducedMotion) {
+        pct = Math.max(pct, target);
+        paint();
+      }
+    }
+
+    function startBuild() {
+      startedAt = Date.now();
+      pct = 0;
+      target = 0;
+      feedEl.innerHTML = '';
+      lastStatusText = '';
+      card.classList.remove('pg-ai-action-card--sealed', 'pg-ai-action-card--broken');
+      sealEl.src = IMG + 'logo_circle_check_admin.svg';
+      buildEl.hidden = false;
+      card.classList.add('pg-ai-action-card--building');
+      paint();
+      progress({ stage: 'confirm' });
+      if (!reducedMotion) creep();
+    }
+
+    // Back to the summary and the buttons — the server refused before anything ran (or wants the number of rows).
+    function stopBuild() {
+      stopCreep();
+      buildEl.hidden = true;
+      card.classList.remove('pg-ai-action-card--building');
+    }
+
+    // The bar to 100 and the seal, then the card settles — after the floor, so the site is seen being built.
+    function finishBuild(state, text, tellText) {
+      stopCreep();
+      const wait = reducedMotion ? 0 : Math.max(0, MIN_BUILD_MS - (Date.now() - startedAt));
+      setTimeout(function () {
+        if (state === 'done') {
+          feedLine(pgTc('הושלם'));
+          const last = feedEl.querySelector('.is-active');
+          if (last) { last.classList.remove('is-active'); last.classList.add('is-done'); }
+          pct = 100;
+          paint();
+          card.classList.add('pg-ai-action-card--sealed');
+          // The success animation's two frames: the checked circle, then the פ mark.
+          setTimeout(function () { sealEl.src = IMG + 'logo_p_check_admin.svg'; }, reducedMotion ? 0 : 650);
+          setTimeout(function () { settle(state, text, tellText); }, reducedMotion ? 0 : SEAL_MS);
+        } else {
+          const last = feedEl.querySelector('.is-active');
+          if (last) { last.classList.remove('is-active'); last.classList.add('is-failed'); }
+          card.classList.add('pg-ai-action-card--broken');
+          phaseEl.textContent = pgTc('הפעולה נכשלה');
+          settle(state, text, tellText);
+        }
+      }, wait);
+    }
+
+    // res.number_placeholder: what the field is for when it is not the number of rows — the code sent to a new
+    // phone (chat/self_service_sql.php).
+    function askForNumber(res) {
+      if (!numberInput) {
+        const label = (res && res.number_placeholder) || '';
+        numberInput = document.createElement('input');
+        numberInput.type = 'text';
+        numberInput.inputMode = 'numeric';
+        numberInput.autocomplete = label ? 'one-time-code' : 'off';
+        numberInput.className = 'form-control form-control-sm pg-ai-action-number';
+        numberInput.placeholder = label || pgTc('מספר השורות');
+        numberInput.setAttribute('aria-label', label || pgTc('מספר השורות לאישור'));
+        numberInput.addEventListener('keydown', function (e) {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            btnConfirm.click();
+          }
+        });
+        buttonsEl.parentNode.insertBefore(numberInput, buttonsEl);
+      }
+      numberInput.focus();
+    }
+
+    function postBody(action) {
+      const body = { action: action, action_id: proposal.action_id };
+      if (action === 'confirm') {
+        body.token = proposal.token || '';
+        body.stream = '1';
+        if (numberInput) {
+          body.typed_number = numberInput.value.trim();
+        }
+      }
+      if (opts.ownerSchoolId > 0) {
+        // Owner console: the proposal lives on the selected school, and the confirming UPDATE
+        // is scoped to it. The server re-validates staff status before honouring this.
+        body.owner_school_id = opts.ownerSchoolId;
+      }
+      return body;
+    }
+
+    function showStatus(text) {
+      statusEl.textContent = text || '';
+      statusEl.classList.toggle('d-none', !text);
+    }
+
+    // The action made a module ready (module_rollout.php): the flyers and videos to pass on. The words come from the server,
+    // in the school's language; a link is only ever one the server built.
+    let rollout = null;
+    function showRollout(data) {
+      card.appendChild(rolloutBlock(data));
+    }
+
+    // tellText: what "כתוב ללקוח" drafts, when it is not the outcome line — a message to the customer drafts the message.
+    function settle(state, text, tellText) {
+      if (settled) return;
+      settled = true;
+      card.dataset.pgOpen = '0';
+      if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+      stopCreep();
+      card.classList.remove('pg-ai-action-card--running');
+      card.classList.add('pg-ai-action-card--' + state);
+      // The badge in the title: the card keeps its summary, so the outcome has to be readable
+      // at a glance when the conversation is scrolled back through later.
+      stateEl.textContent = STATE_LABELS[state] || '';
+      buttonsEl.remove();
+      safeEl.remove();
+      if (numberInput) {
+        numberInput.remove();
+      }
+      showStatus(text || '');
+      // "כתוב ללקוח": the outcome line, handed to whoever asked for it — today only the console
+      // embedded in the WhatsApp support screen, which drops it into the compose box as a draft.
+      // No onTell (the floating widget, the full console) = no button, the card is unchanged.
+      // The outcome is the handler's own sentence ("המורה … נוסף/ה בהצלחה"), written for a
+      // person, which is why it is the draft and not the summary of what was approved.
+      if (state === 'done' && typeof opts.onTell === 'function') {
+        told = tellText || text || STATE_LABELS.done;
+        const tell = document.createElement('button');
+        tell.type = 'button';
+        tell.className = 'btn btn-sm btn-success pg-ai-action-tell';
+        tell.innerHTML = '<i class="bi bi-whatsapp me-1"></i>כתוב ללקוח';
+        tell.title = 'לשורת הכתיבה של השיחה בווצאפ — טיוטה, לא נשלחת לבד';
+        tell.addEventListener('click', function () { opts.onTell(told); });
+        card.appendChild(tell);
+      }
+      if (state === 'done' && rollout) {
+        showRollout(rollout);
+      }
+      toEnd(text ? statusEl : null);
+      if (typeof opts.onSettled === 'function') {
+        // toCustomer: an approved message to the customer (tellText is its text) — the screen beside sends it, or refuses to.
+        const how = { clicked: clicked, actionId: parseInt(proposal.action_id, 10) || 0, kind: proposal.kind || '',
+                      toCustomer: !!tellText };
+        try { opts.onSettled(state, how); } catch (e) { /* the card is already settled */ }
+      }
+    }
+
+    function localFail(text) {
+      btnConfirm.disabled = false;
+      btnCancel.disabled = false;
+      // The buttons are back, so the card is answerable again — and therefore supersedable again.
+      card.dataset.pgOpen = '1';
+      showStatus(text || '');
+    }
+
+    function showBusy(btn, label) {
+      btnConfirm.disabled = true;
+      btnCancel.disabled = true;
+      // No longer answerable, and no longer superseded by a later proposal either — the server
+      // cancels rows in 'proposed' only, and this one is on its way to 'confirmed'.
+      card.dataset.pgOpen = '0';
+      card.classList.add('pg-ai-action-card--running');
+      showStatus(label);
+      btn.querySelector('i').className = btn === btnConfirm ? 'bi bi-hourglass-split me-2' : 'bi bi-hourglass-split me-1';
+    }
+
+    /**
+     * The card the server just cancelled to make room for a newer one. Called by
+     * supersedeOpenCards() from the next pgAppendActionCard(), never by the user.
+     */
+    card.pgSupersede = function () {
+      settle('cancelled', pgTc('הבקשה הוחלפה בבקשה חדשה יותר. לא בוצע שום שינוי.'));
+    };
+
+    /** The message for the customer the answer after this card's run ended with (console.js) — its "כתוב ללקוח" drafts it. */
+    card.pgTellText = function (text) {
+      if (told !== '' && text) told = String(text);
+    };
+
+    // The journal's word on a run this card cannot watch: a queued import, or a run whose line dropped. lateText — what
+    // to say when it is still going after the polling ends; onProposed — the click never arrived (still awaiting "אישור").
+    function pollStatus(lateText, onProposed) {
+      let attempts = 0;
+      if (pollTimer) clearInterval(pollTimer);
+      pollTimer = setInterval(function () {
+        attempts++;
+        if (!card.isConnected) { // the chat was drawn again — this card is gone
+          clearInterval(pollTimer);
+          pollTimer = null;
+          return;
+        }
+        if (attempts > 90) { // ~6 minutes, then let the audit panel tell the rest
+          clearInterval(pollTimer);
+          pollTimer = null;
+          stopCreep();
+          feedLine(lateText || pgTc('הייבוא עדיין רץ — ניתן לעקוב אחריו ביומן הפעולות.'));
+          return;
+        }
+        post(postBody('status'), url).then(function (res) {
+          if (!res || res.status === 'error') return;
+          if (res.status_key === 'proposed' && typeof onProposed === 'function') {
+            clearInterval(pollTimer);
+            pollTimer = null;
+            onProposed();
+            return;
+          }
+          if (res.finished) {
+            finishBuild(res.status_key === 'failed' ? 'failed' : 'done', res.status_text || '');
+          } else if (res.status_text && res.status_text !== lastStatusText) {
+            // The worker's own words, as they change — the live part of a long import.
+            lastStatusText = res.status_text;
+            feedLine(res.status_text);
+            // A step kept in the journal ("שלב 9 מתוך 24", runner.php) moves the bar too — from the same point.
+            const step = /(\d+) מתוך (\d+)/.exec(res.status_text);
+            if (step) {
+              target = Math.max(target, stagePct({ stage: 'step', n: Number(step[1]), of: Number(step[2]) }));
+            }
+          }
+        }).catch(function () { /* transient — the next tick retries */ });
+      }, 4000);
+    }
+
+    function restoreConfirm() {
+      card.classList.remove('pg-ai-action-card--running');
+      btnConfirm.querySelector('i').className = 'bi bi-lightning-charge-fill me-2';
+    }
+
+    btnConfirm.addEventListener('click', function () {
+      if (settled) return;
+      clicked = true;
+      showBusy(btnConfirm, '');
+      startBuild();
+      postStream(postBody('confirm'), progress, url).then(function (res) {
+        if (res && res.status === 'error' && res.need_number > 0) {
+          // Nothing was claimed: the card waits for the number of rows, buttons and all.
+          stopBuild();
+          restoreConfirm();
+          localFail(res.msg || '');
+          askForNumber(res);
+          return;
+        }
+        if (!res || res.status === 'error') {
+          // Two different failures arrive on this branch, and they must not look alike.
+          //
+          // res.action_id present = the proposal WAS claimed and the handler ran, and failed.
+          // For a plan_actions sequence that can mean several of its steps already wrote to the
+          // database (the first failure stops the rest, what ran stays). Handing the buttons
+          // back there would read as "nothing happened, try again" over a half-applied change,
+          // so the card settles as failed and carries the report.
+          //
+          // No action_id = the confirmation itself was refused — expired, already used, wrong
+          // owner. Nothing ran, one message for all of them by design, buttons come back.
+          if (res && res.action_id) {
+            finishBuild('failed', res.result_message || res.msg || pgTc('הפעולה נכשלה.'));
+            return;
+          }
+          stopBuild();
+          restoreConfirm();
+          localFail((res && res.msg) || pgTc('לא ניתן לאשר את הפעולה.'));
+          return;
+        }
+        if (res.queued) {
+          progress({ stage: 'queued' });
+          pollStatus();
+          return;
+        }
+        // A message to the customer: the support screen sends it, and refuses a chat that is not the card's. Where there
+        // is no screen to send it (the full console, the floating chat), the card's "כתוב ללקוח" — if any — drafts it.
+        if (res.customer_message && typeof opts.onSend === 'function') {
+          opts.onSend(res.customer_message);
+        }
+        rollout = res.rollout || null;
+        finishBuild('done', res.result_message || res.msg || pgTc('הפעולה בוצעה בהצלחה'), res.customer_message || '');
+      }).catch(function () {
+        // The line dropped mid-run — on a phone, whenever the app goes to the background (Roi, 04/10). The action goes
+        // on on the server (chat_action_sql.php) and the journal has its steps and its outcome: the card asks it and
+        // goes on from there. Still awaiting "אישור" there means the click never arrived — the buttons come back.
+        feedLine(pgTc('החיבור נקטע לרגע — הפעולה ממשיכה, מחכה לתוצאה…'));
+        pollStatus(pgTc('הפעולה עדיין רצה — אפשר לעקוב אחריה ביומן הפעולות.'), function () {
+          stopBuild();
+          restoreConfirm();
+          localFail(pgTc('שגיאת חיבור — נסו שוב.'));
+        });
+      });
+    });
+
+    btnCancel.addEventListener('click', function () {
+      if (settled) return;
+      showBusy(btnCancel, pgTc('מבטל…'));
+      post(postBody('cancel'), url).then(function (res) {
+        if (!res || res.status === 'error') {
+          card.classList.remove('pg-ai-action-card--running');
+          btnCancel.querySelector('i').className = 'bi bi-x-lg me-1';
+          localFail((res && res.msg) || pgTc('לא ניתן לבטל את הפעולה.'));
+          return;
+        }
+        settle('cancelled', pgTc('הפעולה בוטלה ולא בוצע שום שינוי'));
+      }).catch(function () {
+        card.classList.remove('pg-ai-action-card--running');
+        btnCancel.querySelector('i').className = 'bi bi-x-lg me-1';
+        localFail(pgTc('שגיאת חיבור — נסו שוב.'));
+      });
+    });
+
+    if (record && proposal.state === 'running') {
+      // Still running when the chat was opened again (Roi, 04/10: "אני ימשיך לראות מאותה נקודה?"): shown as running,
+      // with the journal's step as it moves, and settled with the outcome when the journal says it ended.
+      card.dataset.pgOpen = '0';
+      card.classList.add('pg-ai-action-card--running');
+      stateEl.textContent = STATE_LABELS.running;
+      buttonsEl.hidden = true;
+      safeEl.hidden = true;
+      showStatus(pgTc('הפעולה בביצוע'));
+      let rounds = 0;
+      const follow = function () {
+        if (!card.isConnected || ++rounds > 150) { // ~10 minutes
+          clearInterval(pollTimer);
+          pollTimer = null;
+          return;
+        }
+        post(postBody('status'), url).then(function (res) {
+          if (!res || res.status === 'error' || settled) return;
+          if (res.finished) {
+            settle(res.status_key === 'done' ? 'done' : (res.status_key === 'cancelled' ? 'cancelled' : 'failed'), res.status_text || '');
+          } else if (res.status_text) {
+            showStatus(res.status_text);
+          }
+        }).catch(function () { /* transient — the next round asks again */ });
+      };
+      pollTimer = setInterval(follow, 4000);
+      setTimeout(follow, 0);
+    } else if (record) {
+      const recordText = proposal.state === 'cancelled'
+        ? (CANCEL_REASONS[proposal.text] || CANCEL_REASONS.declined)
+        : (proposal.state === 'running' ? pgTc('הפעולה בביצוע') : (proposal.text || ''));
+      settle(proposal.state, recordText);
+    }
+
+    container.appendChild(card);
+    toEnd();
+    return card;
+  };
+
+  /**
+   * The conversation's cards on reopening it (chat_api.php 'actions', oldest first), each in its place: call after
+   * every assistant message with that message's time — the cards created up to it follow it — and once at the end with
+   * Infinity. Consumes the list. opts go to the open card only; a settled one is a record and takes none.
+   */
+  window.pgActionCardsUpTo = function (container, actions, at, opts) {
+    while (actions && actions.length && (Number(actions[0].at) || 0) <= at) {
+      const card = actions.shift();
+      window.pgAppendActionCard(container, card, card.state === 'open' ? opts : {});
+    }
+  };
+})();

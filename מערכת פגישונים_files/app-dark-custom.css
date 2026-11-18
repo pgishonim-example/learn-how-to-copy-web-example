@@ -1,0 +1,251 @@
+html[data-bs-theme=dark] *{
+    --bs-white-bg: #1e1e2d;
+    --dashui-input-bg: #1e1e2d;
+    --bs-input-bg: #1e1e2d;
+    --main_color: #35354f;
+    --tutorial-bg: #35354f;
+    --tutorial-bg-hover: rgb(70, 69, 69);
+    --bs-digital-signature-bg: rgb(26 26 26);
+    --bs-border-color: #35354f;
+    --bs-link-color-rgb: 67, 94, 190;
+    --bs-link-hover-color-rgb: 54, 75, 152;
+    --bs-document-card-title-border: #57545a;
+    --bs-file-drop-hover: #1f1a1a;
+    --bs-body-bg-overlay: rgba(30, 30, 45, .3);
+}
+html[data-bs-theme=dark] .bg-white{
+    background-color: var(--bs-white-bg) !important;
+}
+html[data-bs-theme=dark] .flatpickr-calendar{
+    background-color: #1e1e2d;
+}
+
+/* --pg-dark-ink: see the grey text rule below */
+html[data-bs-theme=dark] a{
+    color: var(--pg-dark-ink, rgba(var(--bs-link-color-rgb))) !important;
+}
+
+/* A link that is a filled button keeps the button's ink, as a <button class="btn"> does - blue on a
+   blue button was unreadable. A transparent one (.btn-link, .btn-outline-*, .btn-ghost) stays link blue. */
+html[data-bs-theme=dark] a.btn-primary,
+html[data-bs-theme=dark] a.btn-secondary,
+html[data-bs-theme=dark] a.btn-success,
+html[data-bs-theme=dark] a.btn-danger,
+html[data-bs-theme=dark] a.btn-danger-dark,
+html[data-bs-theme=dark] a.btn-info,
+html[data-bs-theme=dark] a.btn-warning,
+html[data-bs-theme=dark] a.btn-dark,
+html[data-bs-theme=dark] a.btn-light{
+    color: var(--pg-dark-ink, var(--bs-btn-color)) !important;
+}
+html[data-bs-theme=dark] .white-text{
+    color: white !important;
+}
+html[data-bs-theme=dark] a:hover{
+    --bs-link-color-rgb: var(--bs-link-hover-color-rgb)
+}
+
+html[data-bs-theme=dark] .box_shadow{
+    background-color: var(--bs-digital-signature-bg);
+}
+html[data-bs-theme=dark] .digital-signature-title-color{
+    --digital-signature-title-color: #8eaee5;
+}
+html[data-bs-theme=dark] .btn-light-secondary span{
+    color: #222233 !important;
+}
+html[data-bs-theme=dark] .appointment_box{
+    background-color: #232335;
+}
+html[data-bs-theme=dark] .fc-list-day-cushion{
+    background-color: var(--bs-white-bg) !important;
+}
+html[data-bs-theme=dark] .box-hover:hover{
+    background-color: #222233;
+}
+html[data-bs-theme=dark] .close_black{
+    background-image: url(/assets/compiled/images/closeWhite.png)!important;
+}
+
+html[data-bs-theme=dark] .fc-daygrid-day,html[data-bs-theme=dark] .fc-theme-standard td,html[data-bs-theme=dark] .fc-theme-standard th {
+    --dashui-gray-300: #cbd5e1;
+    border: 1px solid var(--dashui-gray-300);
+}
+html[data-bs-theme=dark] .fc-scrollgrid-sync-inner{
+    text-align: center;
+}
+html[data-bs-theme=dark] .ql-toolbar, html[data-bs-theme=dark] .ql-editor{
+    background-color: #1e1e2d;
+}
+html[data-bs-theme=dark] .signature-area{
+    background-color: #232335;
+}
+html[data-bs-theme=dark] .bg-base-200{
+    --bs-box-bg: #232335;
+}
+html[data-bs-theme=dark] .error_message{
+    --bs-error-message-bg: #c3aaac;
+}
+html[data-bs-theme=dark] td{
+    --bs-white-font-bg: #c2c2d9;
+}
+
+html[data-bs-theme=dark] .modal{overflow-y:scroll !important;display:none;position:fixed;z-index:9999999999999;left:0;top:0;width:100%;height:100%;overflow:hidden;background-color:#000;background-color:rgba(0,0,0,.4);display:none;justify-content: center;align-items: center;}
+
+
+/* Every text turns grey: legacy pages hard-code dark inks meant for a white page. An element that
+   paints its own background (a filled button, a tag) keeps its ink by declaring --pg-dark-ink at
+   any specificity, e.g. `.mod-btn { color: #fff; --pg-dark-ink: #fff; }`; its children inherit it. */
+html[data-bs-theme=dark] *:not(.appointment_box span, .info_message, .error_message, .warning_message, .success_message, .btn, .btn *, .badge, .badge *, .accessibility_component){
+    color: var(--pg-dark-ink, #92929F);
+}
+
+html[data-bs-theme=dark] .svg_fill{
+    fill: #92929F !important;
+}
+html[data-bs-theme=dark] th{
+    --bs-table-th-bg: #232335;
+}
+html[data-bs-theme=dark] .nav_image img, html[data-bs-theme=dark] img, html[data-bs-theme=dark] .btn, html[data-bs-theme=dark] .badge, html[data-bs-theme=dark] .text-info {
+    opacity: 0.8;
+}
+/* The four message boxes are deliberately excluded from the dimming above: they
+   keep a fixed light pastel background, so 0.8 opacity only cost contrast
+   (error dropped to 3.18 against 4.37 in light mode) without softening anything. */
+html[data-bs-theme=dark] .color_box, html[data-bs-theme=dark] .dark_opacity,html[data-bs-theme=dark] .level1_span,html[data-bs-theme=dark] .level2_span,html[data-bs-theme=dark] .level3_span{
+    opacity: 1;
+}
+html[data-bs-theme=dark] .appointment_box {
+    border-color: #232335 !important;
+}
+html[data-bs-theme=dark] .table:not(.table-borderless) thead th, html[data-bs-theme=dark] .dataTable-table:not(.table-borderless) thead th {
+    border-bottom: 2px solid #323c5a !important;
+    color: #a7afcb !important;
+}
+/* "סינון מתקדם" (SearchPanes): its stylesheet paints each pane's list white with !important, so in
+   dark mode the grey names sat on a white box - every site page with the advanced filter. */
+html[data-bs-theme=dark] div.dtsp-searchPane div.dt-container div.dt-scroll-body {
+    background-color: var(--bs-white-bg) !important;
+}
+html[data-bs-theme=dark] div.dtsp-searchPane div.dt-container {
+    border-color: var(--bs-border-color) !important;
+}
+html[data-bs-theme=dark] div.dtsp-searchPane tr.selected {
+    --pg-dark-ink: #fff;
+}
+html[data-bs-theme=dark] .arrow-circle, html[data-bs-theme=dark] .m_nav{
+    --bs-table-th-bg: #232335;
+    background-color: var(--bs-table-th-bg) !important;
+    border-color: var(--bs-table-th-bg) !important;
+}
+.table thead th {
+    background-color: var(--bs-table-th-bg) !important;
+}
+html[data-bs-theme=dark] .modal{
+    --bs-modal-margin: 1.75rem;
+  }
+
+html[data-bs-theme=dark] .modal-content{
+    max-height: calc(100vh - var(--bs-modal-margin) * 2) !important;
+    max-height: calc(100dvh - var(--bs-modal-margin) * 2) !important;
+  }
+
+html[data-bs-theme=dark] [class*="modal-fullscreen"] .modal-content{
+    max-height: 100% !important;
+  }
+
+html[data-bs-theme=dark] .dselect-clear svg {
+    width: 0.7rem;
+    height: 0.7rem;
+}
+
+/* .switcher — dark tokens for the switch in app-custom.css. The focus ring's
+   inner band is this panel's dark surface (#1e1e2d), not the admin's #1e293b. */
+html[data-bs-theme=dark] .switcher {
+    --sw-a: #3b5fc7;
+    --sw-b: #a5b4fc;
+    --sw-off: #2f3a60;
+    --sw-edge: rgba(165, 180, 252, .60);
+    --sw-edge-hover: rgba(165, 180, 252, .7);
+    --sw-halo: rgba(165, 180, 252, .14);
+    --sw-knob: #f1f5f9;
+    --sw-knob-shadow: 0 1px 3px rgba(0, 0, 0, .45);
+    --sw-focus: 0 0 0 2px #1e1e2d, 0 0 0 4px #a5b4fc;
+}
+
+html[data-bs-theme=dark] .switcher label::before {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='none' stroke='%232e54b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round' d='M3.5 8.5l3 3 6-6.5'/%3E%3C/svg%3E");
+}
+
+@media (min-width: 768px){
+    html[data-bs-theme=dark] .offset-md-1{margin-inline-start:8.33333333%}
+    html[data-bs-theme=dark] .offset-md-2{margin-inline-start:16.66666667%}
+    html[data-bs-theme=dark] .offset-md-3{margin-inline-start:25%}
+    html[data-bs-theme=dark] .offset-md-4{margin-inline-start:33.33333333%}
+}
+
+/* "כניסה בתור" strip (app-custom.css) — after the `*` text rule above, or its grey wins. */
+html[data-bs-theme=dark] .pg-loginas-bar {
+    background: #3a3220;
+    border-color: #5c4a22;
+}
+
+html[data-bs-theme=dark] .pg-loginas-bar,
+html[data-bs-theme=dark] .pg-loginas-bar *:not(.btn, .btn *) {
+    color: #f1e6cf;
+}
+
+/* The way back stays at full strength: the site dims every dark-mode button to 0.8 (above), and on
+   this strip the navy gradient then sinks into the background. */
+/* The waiting-phone strip (app-custom.css): the same navy notice, sunk into the dark surface. */
+html[data-bs-theme=dark] .pg-phonewait-bar {
+    background: #1b2440;
+    border-color: #2c3a62;
+}
+
+html[data-bs-theme=dark] .pg-phonewait-bar,
+html[data-bs-theme=dark] .pg-phonewait-bar *:not(.btn, .btn *) {
+    color: #e7ecf5;
+}
+
+html[data-bs-theme=dark] .pg-phonewait-bar__ask {
+    color: #94a3b8 !important;
+}
+
+html[data-bs-theme=dark] .pg-phonewait-bar__cancel {
+    opacity: 1;
+    background: transparent;
+    border-color: #8fa6e8;
+    color: #dbe4ff !important;
+}
+
+html[data-bs-theme=dark] .pg-phonewait-bar__cancel:hover {
+    background: #2e54b8;
+    color: #fff !important;
+}
+
+html[data-bs-theme=dark] .pg-phonewait-bar__cancel:focus-visible {
+    box-shadow: 0 0 0 2px #1e293b, 0 0 0 4px #8fa6e8;
+}
+
+html[data-bs-theme=dark] .pc-wait-note,
+html[data-bs-theme=dark] .pc-modal-lead,
+html[data-bs-theme=dark] .pc-wa {
+    color: #94a3b8 !important;
+}
+
+html[data-bs-theme=dark] .pc-wait-note b {
+    color: #e7ecf5 !important;
+}
+
+html[data-bs-theme=dark] .pg-loginas-bar__back {
+    opacity: 1;
+    background-image: none;
+    background-color: #2e54b8;
+    /* the `a` rule at the top of this file paints every link blue with !important - this one is a button */
+    color: #fff !important;
+}
+
+html[data-bs-theme=dark] .pg-loginas-bar__back:focus-visible {
+    box-shadow: 0 0 0 2px #1e1e2d, 0 0 0 4px #2e54b8;
+}

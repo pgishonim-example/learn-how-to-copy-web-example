@@ -1,0 +1,1354 @@
+function _pgEscHtml(s) {
+    if (typeof s !== 'string') return '';
+    var d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+// Typing and picking make no request, so the server saw someone working on one page as idle, and the session ended under
+// the form (www/inc/functions/session_ping.php). While the page is being touched, say so every few minutes. A page nobody
+// touches says nothing, and ends as before.
+(function () {
+    'use strict';
+    if (window.__pgSessionPing || typeof window.fetch !== 'function') {
+        return;
+    }
+    window.__pgSessionPing = true;
+    const TOUCH_MS = 60 * 1000;
+    const PING_MS = 5 * 60 * 1000;
+    let lastTouch = 0;
+    let lastPing = Date.now();
+    ['pointerdown', 'keydown', 'wheel', 'touchstart', 'input'].forEach(function (type) {
+        window.addEventListener(type, function () {
+            lastTouch = Date.now();
+        }, { capture: true, passive: true });
+    });
+    setInterval(function () {
+        const now = Date.now();
+        if (now - lastTouch > TOUCH_MS || now - lastPing < PING_MS) {
+            return;
+        }
+        lastPing = now;
+        window.fetch('/session_ping.php', { method: 'POST', credentials: 'same-origin' }).catch(function () {});
+    }, 30 * 1000);
+})();
+
+document.addEventListener('show.bs.modal', function (event) {
+    const openModals = document.querySelectorAll('.modal.show');
+    if (openModals.length === 0) return;
+    const zIndex = 1055 + (10 * openModals.length);
+    event.target.style.zIndex = zIndex;
+    setTimeout(function () {
+        const backdrops = document.querySelectorAll('.modal-backdrop');
+        if (backdrops.length > 1) {
+            backdrops[backdrops.length - 1].style.zIndex = zIndex - 1;
+        }
+    });
+});
+
+function openExternalLink(url) {
+    if (!url) return;
+    var newWindow = window.open(url, '_blank');
+    if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        window.location.href = url;
+    }
+}
+
+// מעבר לדף התשלום של חברת הסליקה.
+//
+// ניווט רגיל הוא הצד השברירי של כל תשלום במערכת: בדפדפן פנימי של אפליקציה
+// (WebView) הדפדפן ממשיך לצייר את הדף הנוכחי עד שהדף החדש מוכן להיצבע,
+// וכשדף הסליקה לא נצבע — מה שהמשתמש רואה הוא הספינר של כפתור השליחה
+// מסתובב בלי סוף, בזמן שאצלנו ההזמנה כבר נוצרה וממתינה לתשלום.
+//
+// לכן: מנווטים מיד כרגיל (כולל רשומה בהיסטוריה, כדי ש"חזור" מדף הסליקה
+// יתנהג כמו קודם), ואם אחרי PG_GATEWAY_FALLBACK_MS עדיין נמצאים כאן —
+// ההעברה נכשלה, ובמקום ספינר נצחי מוצג קישור אמיתי ללחיצה. לחיצה של
+// המשתמש עוברת גם במקומות שבהם ניווט אוטומטי נחסם, והכתובת מוצגת
+// להעתקה אם גם זה נכשל.
+const PG_GATEWAY_FALLBACK_MS = 6000;
+
+function goToPaymentGateway(url) {
+    // כתובת שאינה http/https לא מנווטים אליה — אבל גם לא יוצאים בשקט:
+    // יציאה שקטה משאירה את כפתור השליחה מסתובב לנצח בלי שום הודעה,
+    // כלומר בדיוק התקיעה שהפונקציה הזו נועדה למנוע.
+    if (!pgIsWebUrl(url)) {
+        if (typeof pgAlert === 'function') {
+            pgAlert(_pgTc('אירעה שגיאה בטעינת דף התשלום. אנא נסו שוב מאוחר יותר.'));
+        }
+        return;
+    }
+    try { window.location.href = url; } catch (e) { /* הקישור שלמטה הוא המענה */ }
+    setTimeout(function () { pgPaymentHandoffFallback(url); }, PG_GATEWAY_FALLBACK_MS);
+}
+
+// הכתובת מגיעה מתשובת חברת הסליקה. רק http/https הופך לקישור לחיץ —
+// אחרת javascript: בתשובה היה הופך לכפתור שהמשתמש לוחץ עליו בעצמו.
+function pgIsWebUrl(url) {
+    if (!url) return false;
+    try {
+        const scheme = new URL(url, window.location.href).protocol;
+        return scheme === 'http:' || scheme === 'https:';
+    } catch (e) {
+        return false;
+    }
+}
+
+function pgPaymentHandoffFallback(url) {
+    if (!pgIsWebUrl(url)) return;
+
+    const prev = document.getElementById('pgPaymentHandoffModal');
+    if (prev) prev.remove();
+
+    // ה-href והכתובת המוצגת נכתבים דרך ה-DOM ולא לתוך מחרוזת ה-HTML:
+    // _pgEscHtml() לא מסנן מרכאות כפולות, וכתובת שמכילה אחת הייתה פורצת
+    // מתוך התכונה.
+    const html = '<div class="modal fade" id="pgPaymentHandoffModal" tabindex="-1" aria-hidden="true"' +
+        ' data-bs-backdrop="static" data-bs-keyboard="false">' +
+        '<div class="modal-dialog modal-dialog-centered">' +
+        '<div class="modal-content">' +
+        '<div class="modal-header"><h5 class="modal-title">' + _pgTc('לא הצלחנו לפתוח את דף התשלום') + '</h5></div>' +
+        '<div class="modal-body text-center" dir="' + (document.documentElement.dir || 'rtl') + '">' +
+        '<p class="mb-3">' + _pgTc('עדיין לא חויבת. יש ללחוץ על הכפתור כדי להמשיך לדף התשלום.') + '</p>' +
+        '<a class="btn btn-primary btn-lg w-100" href="#" id="pgPaymentHandoffLink">' + _pgTc('פתיחת דף התשלום') + '</a>' +
+        '<p class="small text-muted mt-3 mb-1">' + _pgTc('אם גם זה לא נפתח — יש להעתיק את הכתובת ולפתוח אותה בדפדפן:') + '</p>' +
+        '<span class="d-block small text-break bg-light rounded p-2" dir="ltr" id="pgPaymentHandoffUrl"></span>' +
+        '</div></div></div></div>';
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    const modalEl = document.getElementById('pgPaymentHandoffModal');
+    document.getElementById('pgPaymentHandoffLink').setAttribute('href', url);
+    document.getElementById('pgPaymentHandoffUrl').textContent = url;
+
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        new bootstrap.Modal(modalEl).show();
+        return;
+    }
+    // דף שלא טוען את ה-JS של Bootstrap עדיין חייב להראות את הקישור —
+    // זו נקודת ההצלה האחרונה. ה-CSS של Bootstrap קיים בכל הדפים.
+    modalEl.classList.add('show', 'd-block');
+    modalEl.removeAttribute('aria-hidden');
+}
+
+document.addEventListener('click', function (event) {
+    var link = event.target.closest('a[target="_blank"]');
+    if (!link) return;
+    var href = link.getAttribute('href');
+    if (!href || href === '#' || href.startsWith('javascript:')) return;
+    if (link.hasAttribute('download')) return;
+    event.preventDefault();
+    openExternalLink(href);
+});
+
+$(document).ready(function () {
+    let cookieValue = document.cookie
+        .split("; ")
+        .find(row => row.startsWith("select_default="))
+        ?.split("=")[1];
+
+    if (!cookieValue) return;
+
+    try {
+        let arrayData = JSON.parse(decodeURIComponent(cookieValue));
+
+        $.each(arrayData, function (_, data) {
+            let [type, value] = data.split(":");
+            let $element = $("#" + type); // jQuery selector for element
+
+            if ($element.length) {
+                if ($element.is(":checkbox")) {
+                    $element.prop("checked", value === "כן").trigger("change");
+                } else if ($element.is("select[multiple]")) {
+                    $element.val(value.split(",")).trigger("change");
+                } else {
+                    $element.val(value).trigger("change");
+                }
+            }
+        });
+    } catch (e) {
+        console.error("Error parsing cookie data:", e);
+    }
+});
+
+function sendAjaxByFormId(url, formId, clickedButton = null, onSuccess = undefined, onError = undefined) {
+    const formElement = document.getElementById(formId);
+    const formData = new FormData(formElement);
+    sendAjax(url, formData, clickedButton, onSuccess, onError);
+}
+function setButtonLoadingState(button) {
+    // Find the text and spinner inside the button
+    const buttonText = $(button).find(".buttonText");
+    const buttonSpinner = $(button).find(".spinner-border");
+
+    const originalText = $(button).find(".buttonText").text();
+
+    if (originalText === "עדכון" || originalText === "עדכן") {
+        buttonText.text("מעדכן...");
+    } else if (originalText === "מחיקה" || originalText === "מחק") {
+        buttonText.text("מוחק...");
+    }
+
+    buttonSpinner.removeClass("d-none");
+    button.disabled = true;
+    return false;
+}
+
+function resetButtonLoadingState(button) {
+    // Find the text and spinner inside the button
+    const buttonText = $(button).find(".buttonText");
+    const buttonSpinner = $(button).find(".spinner-border");
+
+    // Reset the button text based on its original state
+    const originalText = $(button).find(".buttonText").text();
+
+    if (originalText === "מעדכן...") {
+        buttonText.text("עדכן");
+    } else if (originalText === "מוחק...") {
+        buttonText.text("מחיקה");
+    }
+
+    buttonSpinner.addClass("d-none");
+    button.disabled = false;
+}
+
+function setToastOnNextPage(response, successDuration = 3500) {
+    localStorage.setItem('toast', JSON.stringify({ type: response.status, msg: response.msg, successDuration: successDuration }));
+}
+function setToastOnNextPageByValues(status, msg, successDuration = 3500) {
+    localStorage.setItem('toast', JSON.stringify({ type: status, msg: msg, successDuration: successDuration }));
+}
+function reload(response) {
+    setToastOnNextPage(response);
+    location.reload();
+}
+function sendAjax(url, data, clickedButton = null, onSuccess = undefined, onError = undefined, successDuration = 3500, errorDuration = 3500) {
+    try {
+        if (clickedButton !== null) {
+            setButtonLoadingState(clickedButton);
+        }
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: data,
+            processData: false, // Prevents jQuery from serializing FormData
+            contentType: false, // Ensures proper content type for FormData
+            dataType: 'json',
+            success: function (response) {
+                if (onSuccess != undefined && response.status == "success") {
+                    onSuccess(response);
+                } else if (typeof onError === "function" && response.status == "error") {
+                    // A number in this slot threw here, before the red toast and with the button spinning.
+                    onError(response);
+                }
+                // A loader/success modal is opened by the caller and only advances to
+                // the check mark from its success branch, so a failed call used to
+                // leave it on screen spinning for ever. End it on the X instead.
+                if (response.status === "error") {
+                    failSpinningModals(response.msg);
+                }
+                const shouldShow = response.msg !== undefined && response.msg !== "" &&
+                    ((response.status === "success" && successDuration !== 0) ||
+                        (response.status === "error" && errorDuration !== 0));
+
+                if (shouldShow) {
+                    showToast(response.msg, response.status, successDuration, errorDuration);
+                }
+            },
+            error: function (jqXHR, textStatus, errorThrown) {
+                console.error("AJAX Error:", {
+                    status: jqXHR.status,
+                    statusText: jqXHR.statusText,
+                    textStatus: textStatus,
+                    errorThrown: errorThrown
+                });
+
+                // Handle no internet connection
+                const transportMessage = !navigator.onLine
+                    ? _pgTc("אין חיבור לאינטרנט. בדוק את החיבור ונסה שוב.")
+                    : _pgTc("שגיאה בשמירת המידע: ") + (errorThrown || _pgTc("בעיה לא ידועה"));
+                showToast(transportMessage, "error", errorDuration);
+                // Losing the connection is a failure like any other: pages close their
+                // loader from onError, and skipping it here left them stuck. A page that
+                // passes a number in this slot must not throw here and keep its button spinning.
+                if (typeof onError === "function") {
+                    onError("");
+                }
+                failSpinningModals(transportMessage);
+            },
+            complete: function () {
+                if (clickedButton !== null) {
+                    resetButtonLoadingState(clickedButton);
+                }
+            }
+        });
+    } catch (err) {
+        console.error('Error in sendAjax function:', err);
+        showToast(_pgTc('שגיאה בשמירת המידע'), 'error', errorDuration);
+        failSpinningModals(_pgTc('שגיאה בשמירת המידע'));
+    }
+}
+/* ---------------------------------------------------------------------------
+   Modal open/close queue (mirrors the admin build, minus its scroll restore —
+   showModal() never preserved window.scrollY on this side, so it still does
+   not; do not "sync" that line across without meaning to change behaviour).
+
+   Bootstrap (5.3.8) ignores show() while the element is already shown or still
+   mid-transition, and ignores hide() while it is not shown or still
+   mid-transition — and it emits no event when it bails, so a call swallowed
+   that way is simply lost. That used to be papered over with one page-global
+   `showInProgress` flag, set by showModal() and cleared only from
+   `shown.bs.modal`: a show() Bootstrap swallowed never produced that event, so
+   the flag stayed true for the rest of the page's life, and from then on every
+   hideModal() on the page silently did nothing — the modal stayed on screen.
+   The single `hideModalId` slot had the same shape of bug: only the last modal
+   asked to close ever closed.
+
+   Transition state belongs to an element, so it is kept on the element. Each
+   one carries at most one pending intent, replayed as soon as its own
+   transition ends.
+
+   A show is additionally held back while some OTHER modal is closing: Bootstrap
+   drops the closing modal's backdrop and restores <body> only on its
+   hidden.bs.modal, so opening the next modal in the same tick leaves the page
+   dimmed once that one is gone — the bug hideModalThen() below was written for.
+   Pages that chain hideModal() + showModal() in one tick now get that ordering
+   without having to ask for it.
+
+   A modal reaches its end state in the call that opens it. iOS's WebKit stops a
+   page's timers and transitions once the page starts to leave (a form sent, a
+   location.href), and Bootstrap waits on them between its steps — the backdrop's
+   fade, then the dialog's — so a modal opened on the way out (a loader on submit)
+   got as far as its grey backdrop and no further: a grey, locked page with no
+   spinner, on the iPhone only (החלפת תפקיד, 06/11/2026). After show() the waits
+   are ended at once with the event Bootstrap dispatches itself when a transition
+   never reports back; the CSS still plays the fade. The helpers act in the call
+   itself once the page is ready, not on jQuery's next tick, and a loader does not
+   wait for a closing modal: that one's fade is ended the same way.
+   --------------------------------------------------------------------------- */
+
+// Modal transition is 300ms, its backdrop another 150ms. Anything still marked
+// busy past this never completed at all.
+const PG_MODAL_STUCK_MS = 1000;
+// How long a success animation owns its modal once it starts playing — the same
+// ~2.6s the call sites wait before closing/redirecting. See completeSuccessAnimation().
+const PG_SA_TAIL_MS = 2600;
+const pgClosingModals = new Set();
+const pgPendingModals = new Set();
+
+function pgModalElement(modalId) {
+    return typeof modalId === 'string' ? document.getElementById(modalId) : modalId;
+}
+
+function pgModalInstance(modalElement, config) {
+    if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+        return null;
+    }
+    return bootstrap.Modal.getInstance(modalElement) || new bootstrap.Modal(modalElement, config || null);
+}
+
+// A transition Bootstrap starts but never finishes (a *.bs.modal event was
+// preventDefault-ed after the event went out) leaves no completion event
+// behind. Without this backstop the element would stay busy and block its own
+// queue for ever — exactly how the old global flag failed.
+function pgModalArmBackstop(modalElement) {
+    clearTimeout(modalElement.pgModalBackstop);
+    modalElement.pgModalBackstop = setTimeout(function () {
+        pgModalSettled(modalElement);
+    }, PG_MODAL_STUCK_MS);
+}
+
+function pgModalSettled(modalElement) {
+    clearTimeout(modalElement.pgModalBackstop);
+    modalElement.pgModalBusy = false;
+    pgClosingModals.delete(modalElement);
+    pgModalFlushAll();
+}
+
+// Bootstrap's own fallback for a transition that never reports back (see the block above).
+function pgModalEndTransitions(elements) {
+    Array.from(elements).forEach(function (element) {
+        if (element) {
+            element.dispatchEvent(new Event('transitionend'));
+        }
+    });
+}
+
+// A closing modal's fade, then its backdrop's: its hidden.bs.modal goes out now.
+function pgModalEndClosing() {
+    const backdrops = Array.from(document.querySelectorAll('.modal-backdrop'));
+    pgModalEndTransitions(Array.from(pgClosingModals));
+    pgModalEndTransitions(backdrops);
+}
+
+function pgModalShowNow(instance, modalElement) {
+    const backdrops = new Set(document.querySelectorAll('.modal-backdrop'));
+    instance.show();
+    pgModalEndTransitions(Array.from(document.querySelectorAll('.modal-backdrop')).filter(function (backdrop) {
+        return !backdrops.has(backdrop);
+    }));
+    pgModalEndTransitions([modalElement.querySelector('.modal-dialog')]);
+}
+
+// The page is ready by the time anyone clicks: act in the call, not on jQuery's next tick.
+function pgModalWhenReady(action) {
+    if (document.readyState === 'loading') {
+        $(document).ready(action);
+    } else {
+        action();
+    }
+}
+
+function pgModalFlush(modalElement) {
+    const intent = modalElement.pgModalIntent;
+    if (!intent) {
+        pgPendingModals.delete(modalElement);
+        return;
+    }
+    // Its own transition is still running — replayed from shown/hidden.
+    if (modalElement.pgModalBusy) {
+        return;
+    }
+
+    const isOpen = modalElement.classList.contains('show');
+
+    if (intent.type === 'show') {
+        if (!isOpen && pgClosingModals.size && !pgClosingModals.has(modalElement)) {
+            // A loader does not wait: the page may be leaving, and then the closing modal never reports back.
+            // Its hidden.bs.modal flushes this one.
+            if (intent.now) {
+                pgModalEndClosing();
+            }
+            return;
+        }
+        modalElement.pgModalIntent = null;
+        pgPendingModals.delete(modalElement);
+        if (isOpen) {
+            return;
+        }
+        const instance = pgModalInstance(modalElement, intent.config);
+        if (instance) {
+            pgModalShowNow(instance, modalElement);
+        }
+        return;
+    }
+
+    // A success animation that only got on screen late still gets its full run: the
+    // page's close timer starts from its AJAX callback, so a modal that opened after
+    // that used to be shut mid-sequence. Hold the close until the sequence is done.
+    const saHoldFor = (modalElement.pgSaBusyUntil || 0) - Date.now();
+    if (!intent.force && saHoldFor > 0) {
+        clearTimeout(modalElement.pgSaHoldTimer);
+        modalElement.pgSaHoldTimer = setTimeout(function () {
+            modalElement.pgSaBusyUntil = 0;
+            pgModalFlush(modalElement);
+        }, Math.min(saHoldFor, PG_SA_TAIL_MS));
+        return;
+    }
+
+    modalElement.pgModalIntent = null;
+    pgPendingModals.delete(modalElement);
+    if (isOpen) {
+        const instance = pgModalInstance(modalElement);
+        if (instance) {
+            instance.hide();
+        }
+    }
+    if (intent.force) {
+        modalElement.classList.remove('show');
+        setTimeout(function () {
+            modalElement.style.display = 'none';
+        }, 100);
+    }
+}
+
+function pgModalFlushAll() {
+    Array.from(pgPendingModals).forEach(pgModalFlush);
+}
+
+function pgModalQueue(modalId, type, config, force, now) {
+    const modalElement = pgModalElement(modalId);
+    if (!modalElement) {
+        return;
+    }
+    // One intent per element: asking to close a modal that has not opened yet
+    // replaces the pending open instead of queueing behind it.
+    modalElement.pgModalIntent = { type: type, config: config || null, force: !!force, now: !!now };
+    pgPendingModals.add(modalElement);
+    pgModalFlush(modalElement);
+}
+
+document.addEventListener('show.bs.modal', function (event) {
+    event.target.pgModalBusy = true;
+    pgModalArmBackstop(event.target);
+});
+document.addEventListener('shown.bs.modal', function (event) {
+    pgModalSettled(event.target);
+});
+document.addEventListener('hide.bs.modal', function (event) {
+    event.target.pgModalBusy = true;
+    pgClosingModals.add(event.target);
+    pgModalArmBackstop(event.target);
+});
+document.addEventListener('hidden.bs.modal', function (event) {
+    pgModalSettled(event.target);
+});
+
+function showModal(modalId) {
+    pgModalWhenReady(function () {
+        pgModalQueue(modalId, 'show');
+    });
+}
+// Mostly put up by the click that sends a form: it does not wait for a closing modal (see the queue's block).
+function showLoaderModal(modalId) {
+    pgModalWhenReady(function () {
+        pgModalQueue(modalId, 'show', { backdrop: 'static', keyboard: false }, false, true);
+    });
+}
+function hideModal(modalId) {
+    pgModalWhenReady(function () {
+        pgModalQueue(modalId, 'hide');
+    });
+}
+// Called from an inline <script> in the page body, so the modal is up on
+// DOMContentLoaded rather than waiting behind jQuery's ready queue.
+function showModalInstantly(modalId) {
+    document.addEventListener("DOMContentLoaded", function () {
+        pgModalQueue(modalId, 'show');
+    });
+}
+
+
+function removeStaticModal(modalId) {
+    pgModalWhenReady(function () {
+        pgModalQueue(modalId, 'hide', null, true);
+    });
+}
+
+function reinitTooltips() {
+    // Reinitialize Bootstrap tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        const tooltipInstance = bootstrap.Tooltip.getInstance(tooltipTriggerEl);
+        if (tooltipInstance) {
+            tooltipInstance.dispose();
+        }
+    });
+    document.querySelectorAll('.tooltip').forEach(function (tooltipEl) {
+        tooltipEl.remove();
+    });
+    tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+        new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+}
+function hideAllActiveModals() {
+    const modals = document.querySelectorAll('.modal.show');
+    modals.forEach(modal => {
+        const modalInstance = bootstrap.Modal.getInstance(modal);
+        if (modalInstance) {
+            modalInstance.hide();
+        }
+    });
+}
+function updatePaginationDom(response) {
+    const paginationFooter = document.getElementById('paginationFooter');
+    const footerLabel = document.getElementById('footer-label-text');
+    if (!paginationFooter || !response) return;
+
+    // Update total rows label
+    if (footerLabel) {
+        footerLabel.textContent = footerLabel.getAttribute('data-label') + response.total_rows;
+    }
+
+    // Build pagination HTML
+    const page = response.page || 1;
+    const totalPages = response.pages || 1;
+    let paginationHtml = '';
+
+    if (totalPages > 1) {
+        paginationHtml += '<nav><ul class="pagination mb-0 pagination-md justify-content-center">';
+        // First
+        paginationHtml += `<li class="page-item${page <= 1 ? ' disabled' : ''}">
+        <span class="underline-none page-link" style="cursor:pointer;" onclick="if(${page} > 1) document.getElementById('pageNew').value = 1;onUpdatePage('1')">${_pgTc('ראשון', null, 'pagination')}</span>
+      </li>`;
+        // Previous
+        paginationHtml += `<li class="page-item${page <= 1 ? ' disabled' : ''}">
+        <span class="underline-none page-link" style="cursor:pointer;" onclick="if(${page} > 1) document.getElementById('pageNew').value = ${page - 1};onUpdatePage('${page - 1}')">${_pgTc('קודם', null, 'pagination')}</span>
+      </li>`;
+
+        let start = Math.max(1, page - 2);
+        let end = Math.min(totalPages, page + 2);
+
+        if (start > 1) {
+            paginationHtml += `<li class="page-item"><span class="underline-none page-link" style="cursor:pointer;" onclick="document.getElementById('pageNew').value = 1;onUpdatePage('1')">1</span></li>`;
+            if (start > 2) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            }
+        }
+
+        for (let i = start; i <= end; i++) {
+            paginationHtml += `<li class="page-item${i == page ? ' active' : ''}">
+        <span class="underline-none page-link" style="cursor:pointer;" onclick="document.getElementById('pageNew').value = '${i}';onUpdatePage('${i}')">${i}</span>
+        </li>`;
+        }
+
+        if (end < totalPages) {
+            if (end < totalPages - 1) {
+                paginationHtml += `<li class="page-item disabled"><span class="page-link">…</span></li>`;
+            }
+            paginationHtml += `<li class="page-item"><span class="underline-none page-link" style="cursor:pointer;" onclick="document.getElementById('pageNew').value = '${totalPages}';onUpdatePage('${totalPages}')">${totalPages}</span></li>`;
+        }
+
+        // Next
+        paginationHtml += `<li class="page-item${page >= totalPages ? ' disabled' : ''}">
+        <span class="underline-none page-link" style="cursor:pointer;" onclick="if(${page} < ${totalPages}) document.getElementById('pageNew').value = '${page + 1}';onUpdatePage('${page + 1}')">${_pgTc('הבא', null, 'pagination')}</span>
+      </li>`;
+        // Last
+        paginationHtml += `<li class="page-item${page >= totalPages ? ' disabled' : ''}">
+        <span class="underline-none page-link" style="cursor:pointer;" onclick="if(${page} < ${totalPages}) document.getElementById('pageNew').value = '${totalPages}';onUpdatePage('${totalPages}')">${_pgTc('אחרון', null, 'pagination')}</span>
+      </li>`;
+        paginationHtml += '</ul></nav>';
+    }
+
+    // Center pagination
+    const centerCol = paginationFooter.querySelector('.col.text-center.order-2');
+    if (centerCol) {
+        centerCol.innerHTML = paginationHtml;
+    }
+
+    // Update hidden page input
+    const pageInput = document.getElementById('pageNew');
+    if (pageInput) {
+        pageInput.value = page;
+    }
+}
+function redirectTo(response) {
+    setToastOnNextPage(response);
+    if (response.redirectPage !== null && response.redirectPage !== undefined) {
+        location.href = response.redirectPage;
+    }
+}
+function refetchDataTable() {
+    let $table = $('.data-table');
+    let dt = $table.DataTable();
+
+    // grab only the visible scroll body
+    let $scrollBody = $table.closest('.dt-container')
+        .find('.dt-scroll-body:visible');
+
+    let scrollPos = $scrollBody.scrollTop();
+
+    dt.ajax.reload(function () {
+        $scrollBody.scrollTop(scrollPos);
+    }, false);
+
+    if (window.bootstrap && typeof bootstrap.Tooltip === 'function') {
+        // Dispose all tooltips
+        document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(function (el) {
+            const tooltipInstance = bootstrap.Tooltip.getInstance(el);
+            if (tooltipInstance) {
+                tooltipInstance.dispose();
+            }
+        });
+        document.querySelectorAll('.tooltip').forEach(function (tooltipEl) {
+            tooltipEl.remove();
+        });
+        // Re-initialize tooltips
+        [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]')).forEach(function (el) {
+            new bootstrap.Tooltip(el);
+        });
+    }
+
+    hideAllActiveModals();
+}
+function initAjaxDataTable(selector, ajaxUrl, ajaxData, columns, lengthMenu, exportExcelButton = true, searchPanes = true, hideColumns = true, excelTitle = _pgTc('אקסל פגישונים'), scrollY = 450, allowedSearchPaneTargets = [], preSelect = []) {
+    let buttons = [];
+    let searchPanesOptions = {};
+    let drawCallbackFunction = null;
+
+    if (searchPanes) {
+        buttons.push({
+            text: '<span class="badge bg-primary me-2" id="filterBadge">0</span>' + _pgTc('סינון מתקדם'),
+            action: function () {
+                $('.dtsp-panesContainer').toggle();
+            }
+        });
+        searchPanesOptions = {
+            layout: 'columns-2',
+            cascadePanes: false,
+            viewTotal: true,
+            preSelect: preSelect,
+            dtOpts: {
+                dom: 'tpB',
+                select: {
+                    style: 'multi'
+                },
+                buttons: [
+                    {
+                        text: _pgTc('בחר הכל'),
+                        action: function (e, dt, node, config) {
+                            dt.rows().select();
+                        }
+                    },
+                    {
+                        text: _pgTc('ביטול בחירת הכל'),
+                        action: function (e, dt, node, config) {
+                            dt.rows().deselect();
+                        }
+                    }
+                ]
+            }
+        }
+        drawCallbackFunction = function () {
+            // Reinit Bootstrap 5 tooltips if needed
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.forEach(function (tooltipTriggerEl) {
+                new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+
+            // Append the custom button "הסתר סינון מתקדם" after SearchPanes is rendered
+            if ($('#customToggleButton').length === 0) {
+                const toggleButton = $('<button type="button" id="customToggleButton" class="dtsp-showAll dtsp-closeSearch">' + _pgTc('הסתר סינון מתקדם') + '</button>');
+                toggleButton.on('click', function () {
+                    $('.dtsp-panesContainer').toggle();
+                });
+                $('.dtsp-titleRow').append(toggleButton);
+            }
+
+            // Update filter badge with the number of selected searchPanes
+            let selectedCount = 0;
+            $('.dtsp-searchPane').each(function () {
+                selectedCount += $(this).find('.selected').length;
+            });
+            $('#filterBadge').text(selectedCount);
+            let api = $(selector).DataTable();
+            setTimeout(function () {
+                api.columns.adjust();
+            }, 200); // 200ms is the "sweet spot" for RTL tables to align
+        }
+    }
+
+    if (hideColumns) {
+        buttons.push({
+            extend: 'colvis',
+            text: _pgTc('הצג/הסתר עמודות'),
+            columns: ':gt(0)',
+            postfixButtons: ['colvisRestore']
+        });
+    }
+
+    if (exportExcelButton) {
+        buttons.push({
+            extend: 'excelHtml5',
+            text: _pgTc('ייצא לאקסל'),
+            title: excelTitle,
+            exportOptions: {
+                columns: ':visible:not(.noExport)'
+            },
+            customize: function (xlsx) {
+                var sheet = xlsx.xl.worksheets['sheet1.xml'];
+                $('worksheet', sheet).attr('rightToLeft', '1');
+                $('row:gt(0) c', sheet).each(function () {
+                    var $cell = $(this);
+                    var v = $cell.find('v').text();
+                    if (v && /^\d+$/.test(v)) {
+                        $cell.removeAttr('s');
+                        $cell.attr('t', 'inlineStr');
+                        $cell.find('v').replaceWith('<is><t>' + v + '</t></is>');
+                    }
+                });
+            }
+        });
+    }
+
+    $(document).ready(function () {
+        let table = $(selector).DataTable({
+            dom: 'PlBfrtip',
+            processing: true,
+            serverSide: true,
+            scrollToTop: false,
+            scrollX: true,
+            autoWidth: false,
+            responsive: false,
+            lengthMenu: lengthMenu,
+            ajax: {
+                url: ajaxUrl,
+                type: 'POST',
+                data: ajaxData
+            },
+            columns: columns,
+            buttons: buttons,
+            searchPanes: searchPanesOptions,
+            scrollY: scrollY,
+            drawCallback: drawCallbackFunction,
+            columnDefs: [
+                {
+                    searchPanes: { show: true },
+                    targets: allowedSearchPaneTargets
+                }
+            ],
+            initComplete: function () {
+                // Loop over all panes and remove those that don't belong to allowed columns
+                $('.dtsp-searchPane').each(function (index, paneElem) {
+                    if (!allowedSearchPaneTargets.includes(index)) {
+                        $(paneElem).remove();
+                    }
+                });
+                this.api().columns.adjust();
+                if (preSelect.length > 0) {
+                    setTimeout(function () {
+                        $('.dtsp-panesContainer').show();
+                    }, 300);
+                }
+            }
+        });
+
+        // Hide loader when processing is done
+        table.on('processing.dt', function (e, settings, processing) {
+            if (!processing) {
+                hideModal("loadingModal");
+            }
+        });
+
+        hideModal("loadingModal");
+
+        // No draw(): the table already sent its first request, and a redraw here sent the same one again,
+        // whose answer DataTables kept while it dropped the first (PG-909).
+        table.columns.adjust();
+
+        table.on('buttons-action', function (e, buttonApi, dataTable, node, config) {
+            setTimeout(() => {
+                table.columns().every(function (index) {
+                    let column = table.column(index);
+                    let pane = $('.dtsp-searchPane:eq(' + index + ')');
+                    if (column.visible()) {
+                        pane.show();
+                    } else {
+                        pane.hide();
+                    }
+                });
+            }, 10);
+        });
+    });
+}
+function sendFormWithProgress(form, url, onProgress, onSuccess, onError) {
+    var successDuration = typeof window.successDuration === "number" ? window.successDuration : 3500;
+    var errorDuration = typeof window.errorDuration === "number" ? window.errorDuration : 3500;
+    if (typeof form === "string") {
+        form = document.getElementById(form);
+    }
+    if (!form) {
+        console.error("Form not found");
+        return;
+    }
+
+    const formData = new FormData(form);
+    const xhr = new XMLHttpRequest();
+
+    // Upload progress
+    xhr.upload.addEventListener("progress", function (e) {
+        if (e.lengthComputable && typeof onProgress === "function") {
+            const percent = Math.round((e.loaded / e.total) * 100);
+            onProgress(percent);
+        }
+    });
+
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4) {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                if (xhr.status === 200) {
+                    if (typeof onSuccess === "function") {
+                        onSuccess(response);
+                    }
+                } else {
+                    if (typeof onError === "function") {
+                        onError(response || xhr.statusText);
+                    }
+                }
+
+                const shouldShow = response.msg !== undefined && response.msg !== "" &&
+                    ((xhr.status === 200 && successDuration !== 0) ||
+                        (xhr.status !== 200 && errorDuration !== 0));
+
+                if (shouldShow) {
+                    showToast(response.msg, xhr.status === 200 ? "success" : "error", successDuration, errorDuration);
+                }
+            } catch (err) {
+                if (typeof onError === "function") {
+                    onError(err);
+                }
+                showToast(_pgTc("שגיאה בשמירת המידע: ") + (err.message || _pgTc("בעיה לא ידועה")), "error", errorDuration);
+            }
+        }
+    };
+
+    xhr.open("POST", url, true);
+    xhr.send(formData);
+}
+
+// Shared UI text in the viewer's language — pgTc() comes from /assets/compiled/js/i18n.js.
+// Without it (a page that did not load i18n.js) the Hebrew is used as written.
+function _pgTc(text, vars, ctx) {
+    return typeof window.pgTc === 'function' ? window.pgTc(text, vars, ctx) : text;
+}
+
+function confirmAction(message, options) {
+    options = options || {};
+    var title = options.title || _pgTc('אישור פעולה');
+    var confirmText = options.confirmText || _pgTc('אישור');
+    var cancelText = options.cancelText || _pgTc('ביטול');
+    var danger = options.danger || false;
+    var btnClass = danger ? 'btn-danger' : 'btn-success';
+
+    var prev = document.getElementById('dynamicConfirmModal');
+    if (prev) prev.remove();
+
+    var html = '<div class="modal fade" id="dynamicConfirmModal" tabindex="-1" aria-hidden="true">' +
+        '<div class="modal-dialog modal-dialog-centered">' +
+        '<div class="modal-content">' +
+        '<div class="modal-header">' +
+        '<h5 class="modal-title">' + _pgEscHtml(title) + '</h5>' +
+        '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + _pgEscHtml(_pgTc('סגור')) + '"></button>' +
+        '</div>' +
+        '<div class="modal-body text-center" dir="' + (document.documentElement.dir || 'rtl') + '" style="font-size:1.05rem;">' + _pgEscHtml(message) + '</div>' +
+        '<div class="modal-footer">' +
+        '<button type="button" class="btn btn-secondary" data-bs-dismiss="modal">' + _pgEscHtml(cancelText) + '</button>' +
+        '<button type="button" class="btn ' + btnClass + '" id="dynamicConfirmBtn">' + _pgEscHtml(confirmText) + '</button>' +
+        '</div></div></div></div>';
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    var modalEl = document.getElementById('dynamicConfirmModal');
+    var modal = new bootstrap.Modal(modalEl);
+
+    return new Promise(function (resolve) {
+        var resolved = false;
+        document.getElementById('dynamicConfirmBtn').addEventListener('click', function () {
+            resolved = true;
+            modal.hide();
+            resolve(true);
+        });
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            if (!resolved) resolve(false);
+            modalEl.remove();
+        });
+        modal.show();
+    });
+}
+
+// Values that round-tripped through an older screen can still carry HTML entities —
+// a class named "ט'-1" was stored as "ט&#039;-1". class_id is a join key compared
+// verbatim on the server, so anything matching one form against the other has to
+// normalise first. Kept here so the two panels cannot drift.
+function decodeHtmlEntities(value) {
+  const textarea = document.createElement('textarea');
+  textarea.innerHTML = String(value);
+  return textarea.value;
+}
+function pgAlert(message, options) {
+    options = options || {};
+    var title = options.title || _pgTc('הודעה', null, 'dialog');
+    var okText = options.okText || _pgTc('הבנתי');
+    var subMessage = options.subMessage || '';
+
+    var prev = document.getElementById('dynamicAlertModal');
+    if (prev) prev.remove();
+
+    var subHtml = subMessage
+        ? '<p class="mt-3 mb-0 text-danger small">' + _pgEscHtml(subMessage) + '</p>'
+        : '';
+
+    var html = '<div class="modal fade" id="dynamicAlertModal" tabindex="-1" aria-hidden="true">' +
+        '<div class="modal-dialog modal-dialog-centered">' +
+        '<div class="modal-content">' +
+        '<div class="modal-header">' +
+        '<h5 class="modal-title">' + _pgEscHtml(title) + '</h5>' +
+        '<button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="' + _pgEscHtml(_pgTc('סגור')) + '"></button>' +
+        '</div>' +
+        '<div class="modal-body text-center" dir="' + (document.documentElement.dir || 'rtl') + '" style="font-size:1.05rem;">' +
+        _pgEscHtml(message) + subHtml +
+        '</div>' +
+        '<div class="modal-footer">' +
+        '<button type="button" class="btn btn-primary" id="dynamicAlertOkBtn">' + _pgEscHtml(okText) + '</button>' +
+        '</div></div></div></div>';
+
+    document.body.insertAdjacentHTML('beforeend', html);
+    var modalEl = document.getElementById('dynamicAlertModal');
+    var modal = new bootstrap.Modal(modalEl);
+
+    return new Promise(function (resolve) {
+        var resolved = false;
+        document.getElementById('dynamicAlertOkBtn').addEventListener('click', function () {
+            if (typeof options.onOk === 'function') {
+                try { options.onOk(); } catch (e) { /* keep modal flow going */ }
+            }
+            if (!resolved) { resolved = true; resolve(); }
+            modal.hide();
+        });
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            if (!resolved) { resolved = true; resolve(); }
+            modalEl.remove();
+        });
+        modal.show();
+    });
+}
+
+// The sequence only exists while it is on screen: inside a modal that is still
+// display:none the browser cancels every animation, so a frame swapped or a line
+// revealed there is simply thrown away. A modal whose open was queued behind another
+// modal's close therefore appeared already finished — the ring never turned and the
+// success line stayed at opacity 0 because its `forwards` fill died with it. Wait for
+// the icon to be really visible before starting.
+function runWhenSaIconVisible(icon, run) {
+    const modalElement = icon.closest('.modal');
+    if (!modalElement || icon.offsetParent !== null) {
+        run();
+        return;
+    }
+    modalElement.addEventListener('shown.bs.modal', function onShown() {
+        modalElement.removeEventListener('shown.bs.modal', onShown);
+        run();
+    });
+}
+
+function completeSuccessAnimation(iconId, revealIds) {
+    const icon = document.getElementById(iconId);
+    if (!icon) return;
+
+    runWhenSaIconVisible(icon, () => {
+        const modalElement = icon.closest('.modal');
+        if (modalElement) {
+            modalElement.pgSaBusyUntil = Date.now() + PG_SA_TAIL_MS;
+        }
+
+        setTimeout(() => {
+            icon.classList.remove('sa-spinning');
+            icon.style.animation = '';
+            icon.innerHTML = '<img src="/assets/compiled/images/logo_circle_check.svg" alt="">';
+            icon.classList.add('sa-pop');
+        }, 400);
+
+        setTimeout(() => {
+            icon.classList.remove('sa-pop');
+            void icon.offsetWidth;
+            icon.innerHTML = '<img src="/assets/compiled/images/logo_p_check.svg" alt="">';
+            icon.classList.add('sa-pop');
+            (revealIds || []).forEach((id, i) => {
+                setTimeout(() => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    // Re-adding a class the element already carries replays nothing, and
+                    // a leftover sa-visible from an earlier run sits at opacity 0 once its
+                    // animation was dropped — so the line has to be re-triggered, not set.
+                    el.classList.remove('sa-visible');
+                    void el.offsetWidth;
+                    el.classList.add('sa-visible');
+                }, i * 150);
+            });
+        }, 1400);
+    });
+}
+
+// The spin comes from the .sa-spinning class on the icon DIV (app-custom.css), not an
+// inline style — the class survives the innerHTML swaps below and matches the admin build.
+const SA_SPINNER_SVG = '<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="44" stroke="#79E4B4" stroke-width="6" stroke-linecap="round" stroke-dasharray="200 77" fill="none"/></svg>';
+
+// Is the ring actually turning right now? A CSS animation is only really lost when its
+// element goes display:none, and the browser starts it again by itself on re-display —
+// so the shown.bs.modal restart below is a safety net, not a routine step. Firing it on
+// a ring that was already turning since show.bs.modal snapped it back to 0deg in front
+// of the user. Browsers without getAnimations() keep the old unconditional restart.
+function saSpinAnimationRunning(icon) {
+    if (!icon || typeof icon.getAnimations !== 'function') return false;
+    return icon.getAnimations().some(function (animation) {
+        return animation.animationName === 'sa-spin' && animation.playState === 'running';
+    });
+}
+
+function startSuccessFlow(modalId, iconId, revealIds, minDelay) {
+    const icon = document.getElementById(iconId);
+    const modalElement = document.getElementById(modalId);
+
+    // Re-arm the icon for this run. A previous run leaves the check mark behind,
+    // and restoring the spinner while the modal is hidden is not enough: the
+    // browser kills a running animation when the subtree goes display:none and
+    // does not start it again on re-display, so from the second run on the
+    // spinner sat frozen. The shown.bs.modal handler below restarts it once the
+    // modal is really on screen — but only when the ring is genuinely dead.
+    if (icon) {
+        clearFailedAnimation(icon);
+        icon.classList.remove('sa-pop');
+        icon.classList.add('sa-spinning');
+        icon.innerHTML = SA_SPINNER_SVG;
+    }
+    (revealIds || []).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('sa-visible');
+    });
+    if (modalElement) {
+        modalElement.pgSaBusyUntil = 0;   // a hold left by the previous run
+    }
+    if (icon && modalElement && !modalElement.classList.contains('show')) {
+        modalElement.addEventListener('shown.bs.modal', function onShown() {
+            modalElement.removeEventListener('shown.bs.modal', onShown);
+            // Only while it still holds the spinner — a fast response may have
+            // swapped in the check mark, or the failure X, before the modal
+            // finished opening. Both drop .sa-spinning, and testing for that is
+            // the only test that covers the X: it is an <svg> too, so a check for
+            // "has an svg" put the ring back over it and the modal then span for
+            // ever on a request that had already failed.
+            // The ring spins off .sa-spinning on the icon itself, so re-creating the
+            // SVG is not enough: the class has to be re-applied to replay it.
+            if (icon.classList.contains('sa-spinning') && !saSpinAnimationRunning(icon)) {
+                icon.classList.remove('sa-spinning');
+                void icon.offsetWidth;
+                icon.classList.add('sa-spinning');
+                icon.innerHTML = SA_SPINNER_SVG;
+            }
+        });
+    }
+
+    showModal(modalId);
+    const startTime = Date.now();
+    minDelay = minDelay || 1000;
+
+    return function () {
+        const elapsed = Date.now() - startTime;
+        const remaining = Math.max(0, minDelay - elapsed);
+        setTimeout(() => {
+            completeSuccessAnimation(iconId, revealIds);
+        }, remaining);
+    };
+}
+
+function resetSuccessModal(iconId, revealIds) {
+    const icon = document.getElementById(iconId);
+    if (!icon) return;
+    clearFailedAnimation(icon);
+    icon.classList.remove('sa-pop');
+    icon.classList.add('sa-spinning');
+    icon.innerHTML = SA_SPINNER_SVG;
+    (revealIds || []).forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('sa-visible');
+    });
+}
+
+// Chain a modal close into whatever opens next. Bootstrap only drops the closing
+// modal's backdrop on hidden.bs.modal, so opening the next modal in the same tick
+// leaves the page dimmed once that one is gone. Waiting for the event avoids it.
+function hideModalThen(modalId, callback) {
+    const modalElement = document.getElementById(modalId);
+    if (!modalElement || !modalElement.classList.contains('show')) {
+        callback();
+        return;
+    }
+    modalElement.addEventListener('hidden.bs.modal', function onHidden() {
+        modalElement.removeEventListener('hidden.bs.modal', onHidden);
+        callback();
+    });
+    hideModal(modalId);
+}
+
+/* ---------------------------------------------------------------------------
+   Failure end-state for the success animation.
+
+   The animation only ever advanced from its caller's success branch, so a
+   request that failed left the modal on screen with the ring turning for ever.
+   These helpers end it the other way round: the ring becomes a red X, the
+   success copy ("...בהצלחה") stays hidden, the AJAX message is printed under
+   the icon and a close button is added — the loader modals open with a static
+   backdrop, so without one there is no way out of the failure state.
+
+   sendAjax() drives this on every failure, so it covers any modal built on the
+   shared .sa-* markup with nothing wired on the page itself.
+   --------------------------------------------------------------------------- */
+const SA_ERROR_SVG = '<svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="50" cy="50" r="44" stroke="#dc3545" stroke-width="6" fill="none"/><path d="M37 37 L63 63 M63 37 L37 63" stroke="#dc3545" stroke-width="8" stroke-linecap="round"/></svg>';
+
+function clearFailedAnimation(icon) {
+    icon = typeof icon === 'string' ? document.getElementById(icon) : icon;
+    if (!icon) return;
+    const wrap = icon.closest('.sa-wrap') || icon.parentElement;
+    if (!wrap) return;
+    wrap.querySelectorAll('.sa-error-msg, .sa-error-actions').forEach(el => el.remove());
+}
+
+function failSuccessAnimation(icon, message) {
+    icon = typeof icon === 'string' ? document.getElementById(icon) : icon;
+    if (!icon) return;
+
+    icon.classList.remove('sa-pop', 'sa-spinning');
+    icon.style.animation = '';
+    void icon.offsetWidth; // restart the pop animation
+    icon.innerHTML = SA_ERROR_SVG;
+    icon.classList.add('sa-pop');
+
+    const wrap = icon.closest('.sa-wrap') || icon.parentElement;
+    if (!wrap) return;
+
+    wrap.querySelectorAll('.sa-reveal').forEach(el => el.classList.remove('sa-visible'));
+
+    let text = wrap.querySelector('.sa-error-msg');
+    if (!text) {
+        text = document.createElement('p');
+        text.className = 'sa-text text-danger sa-error-msg mt-3';
+        icon.insertAdjacentElement('afterend', text);
+    }
+    text.textContent = message || _pgTc('הפעולה נכשלה, יש לנסות שוב');
+
+    const modalElement = icon.closest('.modal');
+    if (!modalElement) return;
+    modalElement.pgSaBusyUntil = 0;   // nothing left to play — let the close through
+
+    if (!wrap.querySelector('.sa-error-actions')) {
+        const actions = document.createElement('div');
+        actions.className = 'sa-actions sa-error-actions';
+        const closeButton = document.createElement('button');
+        closeButton.type = 'button';
+        closeButton.className = 'btn btn-outline-secondary px-4';
+        closeButton.textContent = _pgTc('סגירה');
+        closeButton.addEventListener('click', function () {
+            if (modalElement.id) {
+                hideModal(modalElement.id);
+            } else {
+                bootstrap.Modal.getOrCreateInstance(modalElement).hide();
+            }
+        });
+        actions.appendChild(closeButton);
+        text.insertAdjacentElement('afterend', actions);
+    }
+
+    // Leave the modal armed for the next run: drop the failure copy and put the
+    // spinner back once it closes.
+    modalElement.addEventListener('hidden.bs.modal', function onHidden() {
+        modalElement.removeEventListener('hidden.bs.modal', onHidden);
+        clearFailedAnimation(icon);
+        icon.classList.remove('sa-pop');
+        icon.classList.add('sa-spinning');
+        icon.innerHTML = SA_SPINNER_SVG;
+    });
+}
+
+// An icon counts as "still loading" only while it holds the spinner — the success
+// frames are <img>. The .sa-spinning class is the current shape; the two style
+// checks still cover the page markup that carries the spin inline (see below).
+function isSpinningSaIcon(icon, requireVisible) {
+    if (!icon) return false;
+    if (requireVisible !== false && icon.offsetParent === null) return false;
+    if (icon.classList.contains('sa-spinning')) return true;
+    if ((icon.style.animation || '').indexOf('sa-spin') !== -1) return true;
+    const svg = icon.querySelector('svg');
+    return !!(svg && (svg.getAttribute('style') || '').indexOf('sa-spin') !== -1);
+}
+
+function failSpinningModals(message) {
+    const handled = new Set();
+    const failModal = function (modalElement, requireVisible) {
+        if (!modalElement || handled.has(modalElement)) return;
+        handled.add(modalElement);
+        modalElement.querySelectorAll('.sa-icon').forEach(function (icon) {
+            if (isSpinningSaIcon(icon, requireVisible)) {
+                failSuccessAnimation(icon, message);
+            }
+        });
+    };
+
+    document.querySelectorAll('.modal.show').forEach(function (modalElement) {
+        failModal(modalElement, true);
+    });
+
+    // A loader modal opened while another modal was closing is held in the queue
+    // above until that close finishes, so it is not `.modal.show` yet and its icon
+    // is still display:none — the sweep above cannot see it. A response that beat
+    // the queue would then leave it to open onto a spinner nothing ever ends. Fail
+    // it now instead, so it opens straight onto the X.
+    pgPendingModals.forEach(function (modalElement) {
+        if (modalElement.pgModalIntent && modalElement.pgModalIntent.type === 'show') {
+            failModal(modalElement, false);
+        }
+    });
+
+    // Once the queue hands a modal to Bootstrap it leaves that list, and Bootstrap fades the
+    // backdrop in (~150ms) before it adds `.show`, so a modal in that gap is in neither sweep
+    // above. A response landing there left the ring turning for ever with no way to close it
+    // (M/messages, 01/11/2026). Busy with no close under way is exactly that gap.
+    document.querySelectorAll('.modal').forEach(function (modalElement) {
+        if (modalElement.pgModalBusy && !pgClosingModals.has(modalElement)) {
+            failModal(modalElement, false);
+        }
+    });
+}
+
+/* ---------------------------------------------------------------------------
+   Excel export hygiene, system-wide.
+
+   A column with no header text is UI chrome — the row-actions dropdown, a
+   checkbox picker, an expand caret — never data. Exporting it dumps the whole
+   dropdown ("ביצוע פעולות ... ערוך ... מחק") into one cell of the spreadsheet.
+
+   Every excelHtml5 button in the system exports ':visible:not(.noExport)', so
+   tagging those columns .noExport here drops them everywhere at once, instead
+   of each page remembering to hand-write class="noExport" on the <th>.
+
+   Bound once per document; DataTables fires init.dt for every table, so this
+   covers ajax tables, client-side tables and any table added later.
+   --------------------------------------------------------------------------- */
+if (typeof window !== 'undefined' && !window.__pgNoExportBound) {
+    window.__pgNoExportBound = true;
+    $(document).on('init.dt', function (e, settings) {
+        try {
+            const api = new $.fn.dataTable.Api(settings);
+            api.columns().every(function () {
+                const header = this.header();
+                let dataSrc = '';
+                try { dataSrc = String(this.dataSrc() || ''); } catch (err) { /* index-sourced column */ }
+                const isChrome = $(header).text().trim() === '' || dataSrc === 'actions';
+                if (isChrome) {
+                    $(header).addClass('noExport');
+                    // scrollX clones the header into .dt-scroll-head; tag both so
+                    // the export column-selector matches whichever it resolves to.
+                    $(this.footer()).addClass('noExport');
+                }
+            });
+        } catch (err) {
+            /* never let export hygiene break table init */
+        }
+    });
+}
+
+/* ---------------------------------------------------------------------------
+   Long dropdowns on a short screen, system-wide (same block as M/assets/js/header.js).
+
+   The row-actions menus in tables open with Popper's "fixed" strategy, so the
+   menu is pinned to its button and does not grow the page. When it is taller
+   than the room on either side of the button — a dozen actions on a phone —
+   Popper can flip it but never shrinks it: it stays below the button and its
+   last items sit off the bottom of the screen, out of reach.
+
+   Cap such a menu to the larger side and let it scroll; Popper then flips it to
+   that side. Only fixed menus: an absolute one grows the page, which scrolls to it.
+   dselect opens fixed too, but sizes and scrolls its own list (.dselect-items),
+   so it is left alone.
+   --------------------------------------------------------------------------- */
+if (typeof window !== 'undefined' && !window.__pgDropdownFitBound) {
+    window.__pgDropdownFitBound = true;
+    document.addEventListener('shown.bs.dropdown', function (event) {
+        const toggle = event.target;
+        const dropdown = bootstrap.Dropdown.getInstance(toggle);
+        const menu = toggle.parentNode ? toggle.parentNode.querySelector('.dropdown-menu.show') : null;
+        // Popper writes position:fixed inline only for strategy "fixed"; a menu that is
+        // fixed through CSS is laid out by its own rules.
+        if (!dropdown || !menu || menu.style.position !== 'fixed' || toggle.closest('.dselect-wrapper')) {
+            return;
+        }
+        menu.style.maxHeight = '';
+        menu.style.overflowY = '';
+        const rect = toggle.getBoundingClientRect();
+        const room = Math.floor(Math.max(window.innerHeight - rect.bottom, rect.top)) - 8;
+        if (menu.scrollHeight <= room) {
+            return;
+        }
+        menu.style.maxHeight = room + 'px';
+        menu.style.overflowY = 'auto';
+        dropdown.update();
+    });
+}

@@ -1,0 +1,132 @@
+/*
+ * A picture in the support chat (Amit, 14/10: "צילום מסך בצ'אט") — the person's screenshot to the team, and the
+ * team's picture back. Only while a person from the team handles the conversation (www/inc/functions/support_inbox.php).
+ * Shared by the three chats that hand over to a person — chat/assets/chat.js, the login pages' chat
+ * (chat/login_chat_widget.php) and the panel's own chat (M/inc/footer.php); each draws its own button and bubbles and
+ * passes its words in, already in the viewer's language.
+ *
+ * Server: chat_api.php 'human_image' (the upload) and 'human_image_get' (a picture of this conversation, by message id).
+ * Both are POSTs, so a logged-out visitor's token travels in the body and never in an address.
+ */
+(function () {
+    'use strict';
+
+    const TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    const MAX_BYTES = 10 * 1024 * 1024;
+
+    /** '' when the file can go; otherwise why not — 'type' or 'size' (the server checks the same, from the bytes). */
+    function problem(file) {
+        if (!file || TYPES.indexOf(file.type) === -1) return 'type';
+        if (file.size > MAX_BYTES) return 'size';
+        return '';
+    }
+
+    /**
+     * A camera photo, drawn upright and at most 2000px on its long side: the server draws every picture again from its
+     * pixels (sanitizeImageFile()) and would lose the phone's "which way is up" — a photo of the computer screen would
+     * reach the team on its side. The browser shows a photo upright, and a canvas keeps what it shows. A screenshot,
+     * or anything that fails here, goes as it is.
+     */
+    function prepare(file) {
+        if (!file || file.type !== 'image/jpeg') return Promise.resolve(file);
+        return new Promise(function (resolve) {
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = function () {
+                URL.revokeObjectURL(url);
+                const scale = Math.min(1, 2000 / Math.max(img.naturalWidth, img.naturalHeight));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.max(1, Math.round(img.naturalWidth * scale));
+                canvas.height = Math.max(1, Math.round(img.naturalHeight * scale));
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                canvas.toBlob(function (blob) { resolve(blob || file); }, 'image/jpeg', 0.88);
+            };
+            img.onerror = function () {
+                URL.revokeObjectURL(url);
+                resolve(file);
+            };
+            img.src = url;
+        });
+    }
+
+    /** Opens the browser's picker; resolves the chosen picture (prepare()d), or null. */
+    function choose() {
+        return new Promise(function (resolve) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = TYPES.join(',');
+            input.hidden = true;
+            input.addEventListener('change', function () {
+                const file = input.files && input.files[0] ? input.files[0] : null;
+                input.remove();
+                prepare(file).then(resolve, function () { resolve(file); });
+            });
+            input.addEventListener('cancel', function () {
+                resolve(null);
+                input.remove();
+            });
+            document.body.appendChild(input);
+            input.click();
+        });
+    }
+
+    /** Sends the picture. Resolves the server's answer: { status: 'ok', id } or { status: 'error', message }. */
+    function send(apiUrl, params, file) {
+        const body = new FormData();
+        params.forEach(function (value, key) { body.append(key, value); });
+        body.append('action', 'human_image');
+        body.append('image', file, file.name || 'photo.jpg');
+        return fetch(apiUrl, { method: 'POST', body: body, credentials: 'same-origin' })
+            .then(function (r) { return r.json(); });
+    }
+
+    /** The picture element: a link that opens it full size, around the image. */
+    function figure(src, alt) {
+        const link = document.createElement('a');
+        link.className = 'pg-ai-chat-image';
+        link.href = src;
+        link.target = '_blank';
+        link.rel = 'noopener';
+        const img = document.createElement('img');
+        img.src = src;
+        img.alt = alt || '';
+        img.loading = 'lazy';
+        link.appendChild(img);
+        return link;
+    }
+
+    /** A picture the person just chose, drawn at once from their own file (before the server answers). */
+    function showFile(bubble, file, alt) {
+        const src = URL.createObjectURL(file);
+        bubble.prepend(figure(src, alt));
+        return src;
+    }
+
+    /**
+     * A picture of the conversation (history or a reply), fetched by its message id. A picture that cannot be fetched
+     * leaves its words, or `missing` when it came alone.
+     */
+    function show(bubble, apiUrl, params, id, alt, missing, scroller) {
+        const body = new URLSearchParams(params);
+        body.set('action', 'human_image_get');
+        body.set('id', String(id));
+        const slot = document.createElement('span');
+        slot.className = 'pg-ai-chat-image pg-ai-chat-image--loading';
+        bubble.prepend(slot);
+        return fetch(apiUrl, { method: 'POST', body: body, credentials: 'same-origin' })
+            .then(function (r) { return r.ok ? r.blob() : null; })
+            .then(function (blob) {
+                if (!blob || TYPES.indexOf(blob.type) === -1) throw new Error('no image');
+                const link = figure(URL.createObjectURL(blob), alt);
+                slot.replaceWith(link);
+                const img = link.querySelector('img');
+                if (scroller && img) img.addEventListener('load', function () { scroller.scrollTop = scroller.scrollHeight; });
+            })
+            .catch(function () {
+                slot.className = 'pg-ai-chat-image-missing';
+                slot.textContent = missing || '';
+            });
+    }
+
+    window.pgSupportImage = { problem: problem, prepare: prepare, choose: choose, send: send, show: show, showFile: showFile };
+})();

@@ -1,0 +1,1909 @@
+:root {
+  --pg-chat-primary: #152b78;
+  --pg-chat-primary-rgb: 21, 43, 120;
+  --pg-chat-primary-light: #eef2ff;
+  --pg-chat-bg: #ffffff;
+  --pg-chat-card-bg: #ebebeb;
+  --pg-chat-border: #e3e6ef;
+  --pg-chat-text: #161c2d;
+  --pg-chat-text-muted: #79758f;
+  --pg-chat-bubble-me: #152b78;
+  --pg-chat-bubble-them: #ebebeb;
+}
+
+[data-bs-theme="dark"] {
+  --pg-chat-primary: #4a6cf7;
+  --pg-chat-primary-rgb: 74, 108, 247;
+  --pg-chat-primary-light: #1e2a4a;
+  --pg-chat-bg: #1a1d21;
+  --pg-chat-card-bg: #212529;
+  --pg-chat-border: #373b3e;
+  --pg-chat-text: #dee2e6;
+  --pg-chat-text-muted: #9a9cae;
+  --pg-chat-bubble-me: #4a6cf7;
+  --pg-chat-bubble-them: #2b3035;
+}
+
+.chat-layout {
+  height: calc(100vh - 140px);
+  min-height: 600px;
+  overflow: hidden;
+  border: none;
+}
+
+/* Widget Styles */
+.pg-chat-widget {
+  position: fixed;
+  bottom: 90px;
+  inset-inline-end: 20px;
+  width: 400px;
+  height: 600px;
+  max-height: calc(100vh - 120px);
+  z-index: 9999999999 !important;
+  display: none;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: var(--pg-chat-card-bg);
+  transition: all 0.3s ease;
+}
+
+.pg-chat-widget.open {
+  display: flex;
+}
+
+.pg-chat-toggle {
+  position: fixed;
+  bottom: 20px;
+  inset-inline-end: 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: var(--pg-chat-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  z-index: 1056;
+  transition: transform 0.2s;
+  padding: 0;
+}
+
+.pg-chat-toggle i {
+  margin: 0 !important;
+  padding: 0 !important;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-size: 1.75rem;
+}
+
+.pg-chat-toggle:hover {
+  transform: scale(1.05);
+}
+
+/* Keep toggle and widget on the left even in RTL */
+[dir="rtl"] .pg-chat-toggle {
+  left: 20px;
+  right: auto;
+}
+
+[dir="rtl"] .pg-chat-widget {
+  left: 20px;
+  right: auto;
+}
+
+/* Keep the message input footer visible on short / high-DPI desktop screens.
+   The widget height is driven by its container (max-height), so the inner
+   layout must follow it instead of holding a fixed 600px floor that overflows
+   the hidden widget and clips the input at the bottom. */
+.pg-chat-widget .chat-layout {
+  height: 100%;
+  min-height: 0;
+}
+
+.pg-chat-widget .chat-window,
+.pg-chat-widget .chat-body {
+  min-height: 0;
+}
+
+/* Maximize / fullscreen toggle (desktop only — mobile is always fullscreen) */
+.pg-chat-maximize-btn i {
+  line-height: 1;
+}
+
+@media (max-width: 950px) {
+  .pg-chat-maximize-btn {
+    display: none !important;
+  }
+}
+
+@media (min-width: 951px) {
+  .pg-chat-widget.pg-chat-maximized {
+    top: 50%;
+    bottom: auto;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, -50%);
+    width: min(1100px, 95vw);
+    height: min(820px, 92vh);
+    max-height: 92vh;
+    border-radius: 1rem;
+  }
+
+  [dir="rtl"] .pg-chat-widget.pg-chat-maximized {
+    left: 50%;
+    right: auto;
+  }
+
+  .pg-chat-widget.pg-chat-maximized #pgChatSidebar {
+    display: flex !important;
+    flex: 0 0 340px !important;
+    width: 340px !important;
+    max-width: 340px;
+  }
+
+  /* The two-pane maximized layout lives inside a Bootstrap `.row` (flex-wrap:
+     wrap). #pgChatMain is a col-12 whose default min-width:auto can't shrink
+     below its content's min-content width — so for long/wide conversations it
+     wraps onto a second line BELOW the full-height sidebar and gets clipped by
+     the widget's overflow:hidden, leaving the conversation pane blank. Keep the
+     row on one line and let main shrink to fill the space beside the sidebar. */
+  .pg-chat-widget.pg-chat-maximized .row.g-0 {
+    flex-wrap: nowrap !important;
+  }
+
+  .pg-chat-widget.pg-chat-maximized #pgChatMain {
+    display: flex !important;
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none;
+  }
+
+  .pg-chat-widget.pg-chat-maximized #pgChatBackBtn,
+  .pg-chat-widget.pg-chat-maximized #pgChatMainHeaderActions .pg-chat-maximize-btn {
+    display: none !important;
+  }
+
+  /* Maximized desktop: the close (X) lives top-left in the conversation pane,
+     and the restore/minimize toggle stays on the right in the list header. */
+  .pg-chat-widget.pg-chat-maximized #pgChatCloseMain {
+    display: inline-flex !important;
+  }
+
+  .pg-chat-widget.pg-chat-maximized #pgChatCloseWidget {
+    display: none !important;
+  }
+}
+
+.pg-chat-badge {
+  position: absolute;
+  top: -6px;
+  inset-inline-start: -6px;
+  background: #dc3545;
+  color: #fff;
+  border-radius: 10px;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: bold;
+  border: 2px solid var(--bs-body-bg, #fff);
+  z-index: 2;
+  box-shadow: 0 2px 6px rgba(220, 53, 69, 0.4);
+}
+
+.pg-chat-badge.visible {
+  display: flex;
+}
+
+/* Avatar button in chat header */
+.pg-chat-avatar-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  overflow: hidden;
+  text-decoration: none;
+  vertical-align: middle;
+  transition: box-shadow 0.2s ease;
+}
+
+.pg-chat-avatar-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  transition: filter 0.2s ease;
+}
+
+.pg-chat-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: var(--pg-chat-primary, #152b78);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  transition: filter 0.2s ease;
+}
+
+.pg-chat-avatar-edit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: 50%;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.pg-chat-avatar-edit i {
+  color: #fff;
+  font-size: 0.65rem;
+}
+
+.pg-chat-avatar-btn:hover .pg-chat-avatar-edit {
+  opacity: 1;
+}
+
+.pg-chat-avatar-btn:hover {
+  box-shadow: 0 0 0 2px var(--pg-chat-primary, #152b78);
+}
+
+@media (max-width: 576px) {
+
+  html.pg-chat-mobile-lock,
+  body.pg-chat-mobile-lock {
+    overflow: hidden !important;
+  }
+}
+
+#pgChatAlertSettingsBtn {
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+#pgChatAlertSettingsBtn:hover,
+#pgChatAlertSettingsBtn:focus,
+#pgChatAlertSettingsBtn:focus-visible {
+  background: var(--pg-chat-primary-light) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+@media (max-width: 950px) {
+  .pg-chat-widget,
+  [dir="rtl"] .pg-chat-widget {
+    top: 0;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: 100%;
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+    transition: none;
+    background: var(--pg-chat-bg);
+  }
+
+  .pg-chat-toggle,
+  [dir="rtl"] .pg-chat-toggle {
+    inset-inline-end: 10px;
+  }
+
+  .pg-chat-widget .chat-sticky-header,
+  .pg-chat-widget .card-header {
+    direction: rtl !important;
+    display: block !important;
+    background: var(--pg-chat-bg);
+  }
+
+  .pg-chat-widget .card-header > .d-flex {
+    width: 100% !important;
+  }
+
+  .pg-chat-widget .chat-layout {
+    height: 100% !important;
+    min-height: 0 !important;
+  }
+}
+
+.nav-line-bottom {
+  border-bottom: 1px solid var(--pg-chat-border);
+}
+
+.nav-line-bottom .nav-link {
+  color: var(--pg-chat-text-muted);
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 0.5rem 1rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+/* The widget's tabs: a label of two words ("أولياء الأمور") must stay on one line. On a phone
+   the row is nowrap and scrolls sideways, and a tab that shrinks onto two lines cuts the next.
+   Scoped to the widget: the footer loads this file with it, on pages that have .nav-line-bottom
+   tabs of their own. */
+#pgChatTabs .nav-link {
+  white-space: nowrap;
+}
+
+.nav-line-bottom .nav-link.active {
+  color: var(--pg-chat-primary);
+  border-bottom-color: var(--pg-chat-primary);
+  background: transparent;
+}
+
+.pg-chat__item {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--pg-chat-border);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.pg-chat__item:hover {
+  background: var(--pg-chat-bg);
+}
+
+.pg-chat__item.active {
+  background: var(--pg-chat-primary-light);
+}
+
+.pg-chat__item-title {
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pg-chat__item-subtitle {
+  font-size: 0.85rem;
+  color: var(--pg-chat-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Force RTL direction on the main chat header so buttons stay on the left */
+.pg-chat-widget .card-header > .d-flex {
+  direction: rtl;
+}
+
+.pg-chat__row {
+  display: flex;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.pg-chat__row--me {
+  justify-content: flex-end;
+}
+
+.pg-chat__row--them {
+  /* Pack bubble + hover actions together on the left so the reaction icon
+     hugs the bubble instead of floating at the far edge. */
+  justify-content: flex-end;
+}
+
+/* Prevent horizontal scroll in chat messages area */
+#pgChatMessages {
+  overflow-x: hidden !important;
+  background: var(--pg-chat-bg);
+  min-height: 0;
+}
+
+/*
+ * The conversation list (left rail) needs an explicit background or it
+ * inherits from whatever parent it's embedded in — so the same widget
+ * looks white inside the admin panel (white parent) and gray inside the
+ * regular panel (gray app background). Pin it to the chat-bg variable
+ * so both contexts render identically.
+ */
+#pgChatList {
+  background: var(--pg-chat-bg);
+  min-height: 0;
+}
+
+/* System message badges — prevent overflow on long text */
+#pgChatMessages > .text-center .badge {
+  max-width: 100%;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.5;
+}
+
+.pg-chat__bubble {
+  padding: 0.75rem 1.25rem;
+  border-radius: 1rem;
+  max-width: 75%;
+  min-width: 0;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  overflow: hidden;
+}
+
+.pg-chat__bubble--me {
+  background: var(--pg-chat-primary);
+  color: #fff;
+  border-top-right-radius: 1rem;
+}
+
+.pg-chat__bubble--them {
+  background: var(--pg-chat-bubble-them);
+  color: var(--pg-chat-text);
+  border-top-left-radius: 1rem;
+  border: 1px solid var(--pg-chat-border);
+}
+
+/*
+ * Broadcast bubbles get a subtle accent so a parent can tell at a glance
+ * which messages are school-wide announcements vs. personal chat replies.
+ * Color matches the megaphone avatar used elsewhere for broadcast threads.
+ */
+.pg-chat__bubble--broadcast {
+  border-left: 3px solid var(--bs-info, #0dcaf0);
+}
+
+/*
+ * Title heading inside a bubble — extracted from the leading `*Title*`
+ * line by parseTitleAndBody() in chat.js. Slightly larger + bolder than
+ * the body, with a thin separator so the body reads as a follow-up note.
+ */
+.pg-chat__bubble-title {
+  font-size: 1.02rem;
+  font-weight: 700;
+  line-height: 1.3;
+  margin-bottom: 0.35rem;
+  padding-bottom: 0.3rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+.pg-chat__bubble--me .pg-chat__bubble-title {
+  /* Same divider but visible against the colored "me" bubble. */
+  border-bottom-color: rgba(255, 255, 255, 0.25);
+}
+.pg-chat__bubble-text {
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+.pg-chat__bubble a {
+  color: inherit;
+  text-decoration: underline;
+}
+.pg-chat__bubble a:hover {
+  opacity: 0.8;
+}
+
+.pg-ai-chat-navigate-btn,
+button.pg-ai-chat-navigate-btn {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  background: var(--pg-chat-primary);
+  color: #fff;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: opacity 0.15s;
+  border: none;
+  cursor: pointer;
+}
+
+.pg-ai-chat-navigate-btn:hover {
+  opacity: 0.85;
+  color: #fff;
+}
+
+.pg-chat__meta {
+  font-size: 0.7rem;
+  margin-top: 0.4rem;
+  color: var(--pg-chat-text-muted);
+}
+
+.pg-chat__row--me .pg-chat__meta {
+  text-align: start;
+  color: rgba(255, 255, 255, 0.65);
+}
+
+.pg-chat__row--them .pg-chat__meta {
+  text-align: start;
+}
+
+.pg-chat__row--me .pg-chat__bubble {
+  margin-left: auto;
+  margin-right: 0;
+}
+
+.pg-chat__row--them .pg-chat__bubble {
+  margin-right: 0;
+  margin-left: 0;
+}
+
+@media screen and (max-width: 1199px) {
+  #pgChatSearch {
+    width: 1% !important;
+  }
+}
+
+#pgChatWidget .avatar {
+  width: 40px;
+  height: 40px;
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 50%;
+}
+
+#pgChatWidget .avatar-sm {
+  width: 32px;
+  height: 32px;
+}
+
+#pgChatWidget .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+#pgChatWidget .avatar-initials {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  border-radius: 50%;
+  line-height: 1;
+}
+
+#pgChatWidget .avatar-online::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #198754;
+  border: 2px solid var(--pg-chat-card-bg, #fff);
+  border-radius: 50%;
+  bottom: 0;
+  inset-inline-start: 0;
+}
+
+#pgChatWidget .avatar-insystem::after {
+  content: "";
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #ffc107;
+  border: 2px solid var(--pg-chat-card-bg, #fff);
+  border-radius: 50%;
+  bottom: 0;
+  inset-inline-start: 0;
+}
+
+.pg-chat-send-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: var(--pg-chat-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.8rem;
+  transition: opacity 0.2s;
+}
+
+.pg-chat-send-btn:hover {
+  opacity: 0.85;
+}
+
+#pgChatInput:focus {
+  box-shadow: none;
+  border-color: var(--pg-chat-primary);
+}
+
+#pgChatInput {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Ensure the input footer never shrinks or gets pushed off-screen
+   when the widget is resized for the keyboard (InAppBrowser / iOS) */
+.pg-chat-widget .card-footer {
+  flex-shrink: 0;
+}
+
+#pgChatInput::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
+
+#pgChatMessages .pg-chat__members-panel {
+  position: absolute;
+  inset: 0;
+  background: var(--bs-body-bg, #fff);
+  z-index: 5;
+  display: none;
+  flex-direction: column;
+  border-top: 1px solid var(--pg-chat-border);
+}
+
+#pgChatMessages .pg-chat__members-panel.open {
+  display: flex;
+}
+
+.pg-chat__members-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid var(--pg-chat-border);
+  background: var(--pg-chat-bg);
+}
+.pg-chat__rename-form {
+  width: 100%;
+}
+
+.pg-chat__members-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem 0;
+}
+
+.pg-chat__members-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid rgba(227, 230, 239, 0.7);
+}
+
+.pg-chat__members-item:last-child {
+  border-bottom: 0;
+}
+
+.pg-chat__members-remove {
+  opacity: 0;
+  transition: opacity 0.15s;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.pg-chat__members-item:hover .pg-chat__members-remove {
+  opacity: 1;
+}
+
+.pg-chat__members-avatar {
+  margin-inline-end: 0 !important;
+}
+
+.pg-chat__members-meta {
+  min-width: 0;
+}
+
+.pg-chat__members-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--pg-chat-text);
+}
+
+.pg-chat__members-role {
+  font-size: 0.75rem;
+  color: var(--pg-chat-text-muted);
+}
+
+@media (max-width: 991.98px) {
+  .chat-layout {
+    height: calc(100vh - 100px);
+  }
+
+  .chat-layout .row>div:first-child {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 5;
+    background: var(--bs-body-bg, #fff);
+    transition: transform 0.3s ease;
+  }
+
+  /* Widget uses d-none/d-flex toggling, not absolute positioning */
+  .pg-chat-widget .chat-layout .row>div:first-child {
+    position: static;
+    z-index: auto;
+    transition: none;
+  }
+
+  .chat-layout.pg-chat--mobile-open .row>div:first-child {
+    transform: translateX(-100%);
+  }
+
+  [dir="rtl"] .chat-layout.pg-chat--mobile-open .row>div:first-child {
+    transform: translateX(100%);
+  }
+}
+
+/* ── AI Onboarding Overlay ── */
+.pg-onboard {
+  position: fixed;
+  inset: 0;
+  z-index: 99999999999;
+  opacity: 0;
+  pointer-events: none;
+  direction: rtl;
+  transition: opacity 0.6s ease;
+}
+
+.pg-onboard.pg-onboard-active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pg-onboard.pg-onboard-exiting {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+/* Clickable zone over chat toggle inside the overlay */
+.pg-onboard-hotzone {
+  position: fixed;
+  bottom: 5px;
+  inset-inline-end: 5px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  z-index: 4;
+  cursor: pointer;
+}
+
+/* Spotlight — circle cutout over chat button, massive shadow IS the backdrop */
+.pg-onboard-spotlight {
+  position: fixed;
+  bottom: 5px;
+  inset-inline-end: 5px;
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  z-index: 1;
+  box-shadow:
+    0 0 0 200vmax rgba(10, 10, 30, 0.88),
+    0 0 40px rgba(var(--pg-chat-primary-rgb), 0.5),
+    0 0 80px rgba(var(--pg-chat-primary-rgb), 0.25),
+    inset 0 0 20px rgba(var(--pg-chat-primary-rgb), 0.3);
+  transform: scale(0);
+  animation: pgSpotlightEntry 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards;
+}
+
+.pg-onboard.pg-onboard-active .pg-onboard-spotlight {
+  animation:
+    pgSpotlightEntry 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s forwards,
+    pgSpotlightPulse 2s ease-in-out 0.8s infinite;
+}
+
+/* FX layer — grid + scanline */
+.pg-onboard-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.pg-onboard-fx::before {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  background:
+    repeating-linear-gradient(0deg, rgba(var(--pg-chat-primary-rgb), 0.04) 0px, transparent 1px, transparent 50px),
+    repeating-linear-gradient(90deg, rgba(var(--pg-chat-primary-rgb), 0.04) 0px, transparent 1px, transparent 50px);
+  animation: pgGridScroll 20s linear infinite;
+}
+
+.pg-onboard-fx::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.03);
+  animation: pgScanline 4s linear infinite;
+}
+
+/* Connector SVG — dashed line from mascot to button */
+.pg-onboard-connector {
+  position: fixed;
+  bottom: 0;
+  inset-inline-end: 0;
+  width: 200px;
+  height: 400px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.pg-onboard-connector-path {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-width: 2;
+  stroke-dasharray: 8 6;
+  stroke-dashoffset: 600;
+  stroke-linecap: round;
+}
+
+.pg-onboard.pg-onboard-active .pg-onboard-connector-path {
+  animation:
+    pgConnectorDraw 0.8s ease-out 0.9s forwards,
+    pgConnectorFlow 2s linear 1.7s infinite;
+}
+
+/* Content container — centered */
+.pg-onboard-content {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 140px;
+}
+
+/* Mascot — large with holographic glow */
+.pg-onboard-mascot-wrap {
+  opacity: 0;
+  transform: scale(0) rotate(-10deg);
+  filter:
+    drop-shadow(0 0 20px rgba(var(--pg-chat-primary-rgb), 0.5))
+    drop-shadow(0 0 40px rgba(var(--pg-chat-primary-rgb), 0.25));
+}
+
+.pg-onboard.pg-onboard-active .pg-onboard-mascot-wrap {
+  animation:
+    pgMascotEntry 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.5s forwards,
+    pgMascotHologram 3s ease-in-out 1.1s infinite;
+}
+
+.pg-onboard-mascot {
+  width: 180px;
+  height: auto;
+  color: var(--pg-chat-primary);
+  animation: pgMascotFloat 3s ease-in-out infinite alternate;
+}
+
+.pg-onboard .pg-mascot-eyes {
+  animation: pgMascotBlink 4s ease-in-out infinite;
+}
+
+.pg-onboard .pg-mascot-arm-wave {
+  animation: pgMascotWave 0.8s ease-in-out infinite alternate;
+}
+
+.pg-onboard .pg-mascot-antenna-dot {
+  animation: pgMascotPulse 2s ease-in-out infinite;
+}
+
+/* Glassmorphism speech card */
+.pg-onboard-speech {
+  background: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 20px;
+  padding: 28px 32px;
+  max-width: 420px;
+  margin-top: 24px;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.pg-onboard.pg-onboard-active [data-step="1"] .pg-onboard-speech {
+  animation: pgSpeechEntry 0.4s ease-out 0.8s forwards;
+}
+.pg-onboard-step:not([data-step="1"]) .pg-onboard-speech {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.pg-onboard-line {
+  color: #fff;
+  min-height: 1.6em;
+  direction: rtl;
+  text-align: start;
+  line-height: 1.6;
+}
+
+.pg-onboard-line[data-line="0"] {
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.pg-onboard-line[data-line="1"] {
+  font-size: 1.1rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.75);
+  margin-top: 8px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.pg-onboard-line[data-line="1"].pg-onboard-line-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* CTA button */
+.pg-onboard-cta {
+  background: var(--pg-chat-primary);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 14px 32px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-top: 24px;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+  box-shadow:
+    0 0 20px rgba(var(--pg-chat-primary-rgb), 0.4),
+    0 4px 15px rgba(0, 0, 0, 0.2);
+  transition: filter 0.2s, transform 0.2s;
+}
+
+.pg-onboard-cta.pg-onboard-cta-visible {
+  pointer-events: auto;
+  animation:
+    pgCtaEntry 0.4s ease-out forwards,
+    pgCtaPulse 2s ease-in-out 0.4s infinite;
+}
+
+.pg-onboard-cta:hover {
+  filter: brightness(1.15);
+  transform: scale(1.03);
+}
+
+/* Onboarding example chips */
+.pg-onboard-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 12px;
+  width: 100%;
+  max-width: 420px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.pg-onboard-chips.pg-onboard-line-visible { opacity: 1; transform: translateY(0); }
+.pg-onboard-chip {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.9rem;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background 0.2s, border-color 0.2s;
+}
+.pg-onboard-chip:hover {
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Skip link */
+.pg-onboard-skip {
+  background: none;
+  border: none;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.9rem;
+  margin-top: 12px;
+  cursor: pointer;
+  padding: 4px 12px;
+  opacity: 0;
+  pointer-events: none;
+  transition: color 0.2s;
+}
+
+.pg-onboard-skip.pg-onboard-cta-visible {
+  pointer-events: auto;
+  animation: pgCtaEntry 0.4s ease-out forwards;
+}
+
+.pg-onboard-skip:hover {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Steps */
+.pg-onboard-step { display: none; flex-direction: column; align-items: center; }
+.pg-onboard-step.pg-onboard-step-active { display: flex; animation: pgSpeechEntry 0.4s ease-out forwards; }
+
+/* Module list */
+.pg-onboard-modules {
+  max-height: 200px;
+  overflow-y: auto;
+  margin-top: 12px;
+  width: 100%;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.pg-onboard-modules.pg-onboard-line-visible { opacity: 1; transform: translateY(0); }
+.pg-onboard-module-item {
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+.pg-onboard-module-name { font-weight: 600; color: #fff; }
+.pg-onboard-modules::-webkit-scrollbar { width: 4px; }
+.pg-onboard-modules::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 2px; }
+
+/* Input field */
+.pg-onboard-input-wrap {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+  width: 100%;
+  max-width: 420px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.pg-onboard-input-wrap.pg-onboard-line-visible { opacity: 1; transform: translateY(0); }
+.pg-onboard-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  color: #fff;
+  font-size: 1rem;
+  direction: rtl;
+  outline: none;
+}
+.pg-onboard-ai-icon {
+  width: 28px;
+  height: 28px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.6));
+  animation: pgAiIconPulse 2.5s ease-in-out infinite;
+}
+@keyframes pgAiIconPulse {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(167, 139, 250, 0.6)); }
+  50% { filter: drop-shadow(0 0 12px rgba(96, 165, 250, 0.8)); }
+}
+.pg-onboard-input::placeholder { color: rgba(255, 255, 255, 0.4); }
+.pg-onboard-input:focus { border-color: rgba(var(--pg-chat-primary-rgb), 0.6); }
+.pg-onboard-send { padding: 12px 24px; margin-top: 0; }
+
+/* Prompt line above input */
+.pg-onboard-line-prompt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #fff;
+  margin-top: 20px;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.pg-onboard-line-prompt .pg-onboard-ai-icon {
+  width: 22px;
+  height: 22px;
+}
+.pg-onboard-line-prompt.pg-onboard-line-visible { opacity: 1; transform: translateY(0); }
+
+/* Send button inside input wrap */
+.pg-onboard-input-wrap .pg-onboard-send {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+  animation: none;
+}
+
+/* ── Keyframes ── */
+@keyframes pgSpotlightEntry {
+  from { transform: scale(0); }
+  to   { transform: scale(1); }
+}
+
+@keyframes pgSpotlightPulse {
+  0%, 100% {
+    box-shadow:
+      0 0 0 200vmax rgba(10, 10, 30, 0.88),
+      0 0 40px rgba(var(--pg-chat-primary-rgb), 0.5),
+      0 0 80px rgba(var(--pg-chat-primary-rgb), 0.25),
+      inset 0 0 20px rgba(var(--pg-chat-primary-rgb), 0.3);
+  }
+  50% {
+    box-shadow:
+      0 0 0 200vmax rgba(10, 10, 30, 0.88),
+      0 0 60px rgba(var(--pg-chat-primary-rgb), 0.7),
+      0 0 100px rgba(var(--pg-chat-primary-rgb), 0.35),
+      inset 0 0 30px rgba(var(--pg-chat-primary-rgb), 0.4);
+  }
+}
+
+@keyframes pgGridScroll {
+  from { transform: translate(0, 0); }
+  to   { transform: translate(50px, 50px); }
+}
+
+@keyframes pgScanline {
+  from { top: -3px; }
+  to   { top: 100%; }
+}
+
+@keyframes pgMascotEntry {
+  from { opacity: 0; transform: scale(0) rotate(-10deg); }
+  to   { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes pgMascotFloat {
+  from { transform: translateY(0); }
+  to   { transform: translateY(-8px); }
+}
+
+@keyframes pgMascotWave {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(-25deg); }
+}
+
+@keyframes pgMascotBlink {
+  0%, 90%, 100% { transform: scaleY(1); }
+  95%           { transform: scaleY(0.1); }
+}
+
+@keyframes pgMascotPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.4; }
+}
+
+@keyframes pgMascotHologram {
+  0%, 100% { filter: drop-shadow(0 0 20px rgba(var(--pg-chat-primary-rgb), 0.5)) drop-shadow(0 0 40px rgba(var(--pg-chat-primary-rgb), 0.25)) hue-rotate(0deg); }
+  50%      { filter: drop-shadow(0 0 25px rgba(var(--pg-chat-primary-rgb), 0.6)) drop-shadow(0 0 50px rgba(var(--pg-chat-primary-rgb), 0.3)) hue-rotate(20deg); }
+}
+
+@keyframes pgConnectorDraw {
+  from { stroke-dashoffset: 600; }
+  to   { stroke-dashoffset: 0; }
+}
+
+@keyframes pgConnectorFlow {
+  from { stroke-dashoffset: 0; }
+  to   { stroke-dashoffset: -28; }
+}
+
+@keyframes pgSpeechEntry {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pgCtaEntry {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pgCtaPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.03); }
+}
+
+/* ── Mobile ── */
+@media (max-width: 576px) {
+  .pg-onboard-mascot {
+    width: 120px;
+  }
+
+  .pg-onboard-speech {
+    max-width: 90vw;
+    padding: 20px 24px;
+  }
+
+  .pg-onboard-line[data-line="0"] {
+    font-size: 1.15rem;
+  }
+
+  .pg-onboard-line[data-line="1"] {
+    font-size: 0.95rem;
+  }
+
+  .pg-onboard-connector {
+    display: none;
+  }
+
+  .pg-onboard-cta {
+    width: 100%;
+  }
+
+  .pg-onboard-input-wrap { flex-direction: column; }
+  .pg-onboard-send { width: 100%; }
+  .pg-onboard-fx::before {
+    display: none;
+  }
+
+  .pg-onboard-content {
+    padding-bottom: 160px;
+  }
+
+  .pg-onboard-spotlight,
+  .pg-onboard-hotzone {
+    bottom: 10px;
+    inset-inline-end: 0;
+    width: 80px;
+    height: 80px;
+  }
+}
+
+/* Class-group wizard (step 3) — fill the messages pane.
+   Keep in sync with M/chat/assets/chat.css */
+#pgChatMessages .pg-chat__class-wizard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.pg-chat__class-wizard-members {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.pg-chat__class-members-list {
+  flex: 1 1 auto;
+  min-height: 140px;
+  overflow-y: auto;
+  border: 1px solid var(--pg-chat-border);
+  border-radius: 0.375rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* "בחר הכל" in the free group view — whole-audience tiles (chat.js setupGroupAudiencePicker).
+   Keep in sync with M/chat/assets/chat.css */
+.pg-chat__audience {
+  margin-bottom: 0.5rem;
+  padding: 0.625rem;
+  border: 1px solid var(--pg-chat-border);
+  border-radius: 0.75rem;
+  background: var(--pg-chat-bg);
+}
+
+.pg-chat__audience-title {
+  margin-bottom: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--pg-chat-text-muted);
+}
+
+.pg-chat__audience-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.pg-chat__audience-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 48px;
+  margin: 0;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--pg-chat-border);
+  border-radius: 0.625rem;
+  background: var(--pg-chat-bg);
+  color: var(--pg-chat-text);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.pg-chat__audience-tile:hover {
+  border-color: rgba(var(--pg-chat-primary-rgb), 0.45);
+}
+
+.pg-chat__audience-tile:has(.pg-chat__audience-input:focus-visible) {
+  outline: 2px solid var(--pg-chat-primary);
+  outline-offset: 2px;
+}
+
+.pg-chat__audience-tile.is-checked {
+  border-color: var(--pg-chat-primary);
+  background: var(--pg-chat-primary-light);
+}
+
+.pg-chat__audience-tile--wide {
+  grid-column: 1 / -1;
+}
+
+.pg-chat__audience-icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(var(--pg-chat-primary-rgb), 0.1);
+  color: var(--pg-chat-primary);
+  font-size: 1rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.pg-chat__audience-tile.is-checked .pg-chat__audience-icon {
+  background: var(--pg-chat-primary);
+  color: #fff;
+}
+
+.pg-chat__audience-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+
+.pg-chat__audience-name {
+  overflow: hidden;
+  font-size: 0.82rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.pg-chat__audience-count {
+  font-size: 0.72rem;
+  white-space: nowrap;
+  color: var(--pg-chat-text-muted);
+}
+
+.pg-chat__audience-check {
+  margin-inline-start: auto;
+  color: var(--pg-chat-primary);
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.pg-chat__audience-tile.is-checked .pg-chat__audience-check {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.pg-chat__audience-note {
+  grid-column: 1 / -1;
+  padding: 0.25rem 0;
+  font-size: 0.8rem;
+  color: var(--pg-chat-text-muted);
+}
+
+.pg-chat__audience-summary {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  color: var(--pg-chat-primary);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pg-chat__audience-tile,
+  .pg-chat__audience-icon,
+  .pg-chat__audience-check {
+    transition: none;
+  }
+}
+
+/* Read receipts (✓ sent / ✓✓ read on own DM bubbles).
+   Keep in sync with M/chat/assets/chat.css */
+.pg-chat__ticks {
+  margin-inline-start: 0.25rem;
+  white-space: nowrap;
+}
+
+.pg-chat__ticks--read {
+  color: #53bdeb;
+}
+
+/* Emoji reactions (chips under a bubble + the picker bar).
+   Keep in sync with M/chat/assets/chat.css */
+.pg-chat__row {
+  flex-wrap: wrap;
+}
+
+.pg-chat__reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  width: 100%;
+  margin-top: 4px;
+  padding: 0 4px;
+}
+
+.pg-chat__reactions:empty {
+  display: none;
+}
+
+/* The reactions box is a plain (non-reversed) RTL flex row, so flex-start
+   resolves right and flex-end left — mirror of the row itself. Own chips sit
+   under the right-aligned own bubble; others' under the left-aligned bubble. */
+.pg-chat__row--me .pg-chat__reactions {
+  justify-content: flex-start;
+}
+
+.pg-chat__row--them .pg-chat__reactions {
+  justify-content: flex-end;
+}
+
+.pg-chat__reaction-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 7px;
+  border: 1px solid var(--pg-chat-border);
+  border-radius: 999px;
+  background: var(--pg-chat-bg);
+  color: var(--pg-chat-text);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.pg-chat__reaction-chip--mine {
+  border-color: var(--pg-chat-primary);
+  background: var(--pg-chat-primary-light);
+}
+
+.pg-chat__reaction-emoji {
+  font-size: 0.85rem;
+}
+
+.pg-chat__reaction-count {
+  font-weight: 600;
+}
+
+.pg-chat__reaction-picker {
+  position: fixed;
+  z-index: 10000000002;
+  display: flex;
+  gap: 2px;
+  padding: 4px 6px;
+  background: var(--pg-chat-bg);
+  border: 1px solid var(--pg-chat-border);
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+
+.pg-chat__reaction-pick {
+  border: none;
+  background: transparent;
+  font-size: 1.35rem;
+  line-height: 1;
+  padding: 2px 4px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: transform 0.1s ease;
+}
+
+.pg-chat__reaction-pick:hover {
+  transform: scale(1.25);
+}
+
+/* Group blocked-hours editor (manager only).
+   Keep in sync with M/chat/assets/chat.css */
+.pg-chat__sched {
+  padding: 0 2px;
+}
+
+.pg-chat__sched-day {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--pg-chat-border);
+}
+
+.pg-chat__sched-range input {
+  max-width: 110px;
+}
+
+.pg-chat__members-admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--pg-chat-primary);
+  margin-inline-start: 4px;
+  white-space: nowrap;
+}
+
+.pg-chat__offline-notice {
+  background: var(--pg-chat-primary-light);
+  color: var(--pg-chat-text);
+  text-align: center;
+  font-size: 0.75rem;
+  padding: 6px 12px;
+  border-top: 1px solid var(--pg-chat-border);
+}
+
+#pgChatFileInput {
+  display: none;
+}
+
+.pg-chat__upload-btn {
+  background: none;
+  border: none;
+  color: var(--pg-chat-text-muted);
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.15s;
+}
+
+.pg-chat__upload-btn:hover {
+  color: var(--pg-chat-primary);
+}
+
+.pg-chat__upload-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pg-chat__upload-btn--uploading .bi-paperclip {
+  animation: pg-chat-spin 1s linear infinite;
+}
+
+@keyframes pg-chat-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.pg-chat__attachment-img {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: block;
+  margin-top: 4px;
+}
+
+.pg-chat__attachment-file {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 0.375rem;
+  background: rgba(128, 128, 128, 0.1);
+  margin-top: 4px;
+  font-size: 0.8rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.pg-chat__attachment-file:hover {
+  background: rgba(128, 128, 128, 0.2);
+}
+
+/* An attachment while it uploads: the preview (or file name) with a live progress
+   bar, replaced by the real message bubble once the server answers. */
+.pg-chat__upload-bubble {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.9rem;
+  min-width: 140px;
+}
+
+.pg-chat__upload-preview {
+  display: block;
+  max-width: 200px;
+  max-height: 150px;
+  margin-top: 4px;
+  border-radius: 0.375rem;
+  opacity: 0.7;
+}
+
+.pg-chat__upload-track {
+  height: 4px;
+  margin-bottom: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.3);
+  overflow: hidden;
+}
+
+.pg-chat__upload-fill {
+  width: 0;
+  height: 100%;
+  border-radius: inherit;
+  background: #fff;
+  transition: width 0.2s ease;
+}
+
+.pg-chat__upload-status {
+  display: flex;
+  align-items: center;
+  font-size: 0.65rem;
+}
+
+.pg-chat__upload-status .spinner-border {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-width: 2px;
+}
+
+/* An image attachment while it downloads: a placeholder carrying the same progress line. */
+.pg-chat__img-loading {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  width: 200px;
+  max-width: 100%;
+  height: 120px;
+  margin-top: 4px;
+  padding: 8px;
+  border-radius: 0.375rem;
+  background: rgba(128, 128, 128, 0.15);
+}
+
+/* On someone else's (light) bubble a white line would vanish — draw it in the accent. */
+.pg-chat__bubble--them .pg-chat__upload-track {
+  background: rgba(var(--pg-chat-primary-rgb), 0.15);
+}
+
+.pg-chat__bubble--them .pg-chat__upload-fill {
+  background: var(--pg-chat-primary);
+}
+
+.pg-chat__lightbox {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000000000;
+  background: rgba(0, 0, 0, 0.85);
+  flex-direction: column;
+}
+
+.pg-chat__lightbox.open {
+  display: flex;
+}
+
+.pg-chat__lightbox-toolbar {
+  display: flex;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 12px;
+}
+
+.pg-chat__lightbox-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-size: 1.25rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.pg-chat__lightbox-btn:hover {
+  background: rgba(255, 255, 255, 0.3);
+  color: #fff;
+}
+
+.pg-chat__lightbox-stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 12px;
+  touch-action: none;
+}
+
+.pg-chat__lightbox-img {
+  max-width: 100%;
+  max-height: 100%;
+  transform-origin: center center;
+  transition: transform 0.15s ease;
+}
+
+/* ── Per-message edit / delete-for-everyone (WhatsApp-style) ── */
+/* Own messages sit on the right (RTL). The ⋮ actions render as a flex sibling
+   of the bubble (so the bubble's overflow:hidden can't clip them); reverse the
+   row so they sit on the inner (left) side of the right-aligned bubble. In an
+   RTL container justify-content:flex-end resolves to the left, so the row must
+   be reversed rather than relying on it to right-align. */
+.pg-chat__row--me {
+  flex-direction: row-reverse;
+}
+.pg-chat__row--me .pg-chat__bubble {
+  margin-inline-end: 0;
+}
+.pg-chat__msg-actions {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  gap: 3px;
+  margin: 0 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.pg-chat__row:hover .pg-chat__msg-actions {
+  opacity: 1;
+}
+.pg-chat__msg-action {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  padding: 0;
+  line-height: 1;
+  font-size: 0.72rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: var(--pg-chat-bubble-them);
+  color: var(--pg-chat-text-muted);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+.pg-chat__msg-action:hover {
+  color: var(--pg-chat-primary);
+}
+.pg-chat__msg-menu {
+  position: fixed;
+  z-index: 10000000001;
+  min-width: 160px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  background: var(--pg-chat-bg);
+  border: 1px solid var(--pg-chat-border);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.pg-chat__msg-menu-item {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--pg-chat-text);
+  font-size: 0.85rem;
+  text-align: start;
+  cursor: pointer;
+}
+.pg-chat__msg-menu-item:hover {
+  background: var(--pg-chat-primary-light);
+}
+/* Touch devices have no hover — keep the actions visible on own messages. */
+@media (hover: none) {
+  .pg-chat__msg-actions {
+    opacity: 1;
+  }
+}
+.pg-chat__bubble--deleted .pg-chat__deleted-text {
+  font-style: italic;
+  opacity: 0.8;
+  display: flex;
+  align-items: center;
+}
+.pg-chat__edited {
+  opacity: 0.7;
+  font-size: 0.9em;
+}
+.pg-chat__edit-banner {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px;
+  margin-bottom: 6px;
+  border-radius: 6px;
+  border-inline-start: 3px solid var(--pg-chat-primary);
+  background: var(--pg-chat-primary-light);
+  color: var(--pg-chat-text);
+  font-size: 0.78rem;
+}
+.pg-chat__edit-banner.open {
+  display: flex;
+}
+
+/* English: the onboarding window is position:fixed and pins rtl above, so it does not
+   inherit the page direction. In a left-to-right page that puts a trailing question mark
+   at the start of the sentence. */
+html[dir="ltr"] .pg-onboard {
+  direction: ltr;
+}
+
+/* English: NagishLi, the accessibility widget, does not mirror - measured at the same
+   bottom-right corner in every language. The chat bubble belongs opposite the sidebar,
+   which in a left-to-right page is that same corner, so it steps past the widget here.
+   Hebrew and Arabic keep the bottom-left corner they have today and never reach this. */
+html[dir="ltr"] .pg-chat-toggle,
+html[dir="ltr"] .pg-onboard-spotlight,
+html[dir="ltr"] .pg-onboard-hotzone {
+  inset-inline-end: 80px;
+}
+
+/* English: four components pin their own direction because they are position:fixed or sit
+   inside a Bootstrap card header that reverses its own flow, so none of them inherits the
+   page direction. Released for ltr only - an html[dir="ltr"] selector cannot match for a
+   Hebrew or Arabic viewer, so nothing that renders today can move. */
+html[dir="ltr"] .pg-chat-widget .card-header {
+  direction: ltr !important;
+}
+html[dir="ltr"] .pg-chat-widget .card-header > .d-flex {
+  direction: ltr;
+}
+html[dir="ltr"] .pg-onboard-line,
+html[dir="ltr"] .pg-onboard-input {
+  direction: ltr;
+}
+
+/* English: on a phone the conversation list's sticky header (the title with close / settings, the search, the tab row) is
+   pinned rtl in the max-width:950px block above, so a left-to-right page showed the title on the right, the tabs running
+   right to left and the search placeholder as "...Search". Released for ltr only, like the card header. */
+html[dir="ltr"] .pg-chat-widget .chat-sticky-header {
+  direction: ltr !important;
+}
+/* English: the bubble rows are built for an rtl container (own messages right, others left, the reaction / options buttons
+   on the bubble's inner side). In a left-to-right container flex-end packed the others' row to the right as well, and the
+   own row put its options button outside the bubble, at the screen edge. Mirrored for ltr: the others' bubble returns to
+   the left edge, the own bubble stays flush right with its buttons inside, and the reaction chips stay under their bubble. */
+html[dir="ltr"] .pg-chat__row--them {
+  flex-direction: row-reverse;
+}
+html[dir="ltr"] .pg-chat__row--them .pg-chat__reactions {
+  justify-content: flex-start;
+}
+html[dir="ltr"] .pg-chat__row--me {
+  flex-direction: row;
+}
+html[dir="ltr"] .pg-chat__row--me .pg-chat__bubble {
+  margin-left: 0;
+}
+html[dir="ltr"] .pg-chat__row--me .pg-chat__reactions {
+  justify-content: flex-end;
+}

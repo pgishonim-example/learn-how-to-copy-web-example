@@ -1,0 +1,73 @@
+/*
+ * The support chat's "להודיע לי במחשב" (www/inc/functions/support_inbox.php): a browser on a computer can be told when
+ * the support team answers, even after the site was closed (Amit, 09/10: "אם הוא במחשב אז אפשר לעשות גם פוש למחשב
+ * אבל לא יותר מזה"). Shared by the three chats — chat/assets/chat.js, the login page's chat
+ * (chat/login_chat_widget.php) and the panel's own chat (M/inc/footer.php).
+ *
+ * Computers only: a phone has the app and its own push, and a phone browser is not where the answer is awaited.
+ * The worker is www/support_push_sw.js; the address is kept by chat_api.php 'web_push'.
+ */
+(function () {
+    'use strict';
+
+    function onComputer() {
+        const ua = navigator.userAgent || '';
+        const iPadOs = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1;
+        return !/Mobi|Android|iPhone|iPad|iPod/i.test(ua) && !iPadOs;
+    }
+
+    /** The browser can do it, it is a computer, and the person did not already say no to notifications. */
+    function supported() {
+        return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window
+            && window.isSecureContext && onComputer() && Notification.permission !== 'denied';
+    }
+
+    function keyBytes(base64url) {
+        const padded = base64url + '='.repeat((4 - base64url.length % 4) % 4);
+        const raw = atob(padded.replace(/-/g, '+').replace(/_/g, '/'));
+        return Uint8Array.from(raw, function (c) { return c.charCodeAt(0); });
+    }
+
+    /** This browser's push address (the one it has, or a new one). Resolves null when the browser refuses. */
+    function subscribe(publicKey) {
+        return navigator.serviceWorker.register('/support_push_sw.js', { scope: '/' })
+            .then(function () { return navigator.serviceWorker.ready; })
+            .then(function (registration) {
+                return registration.pushManager.getSubscription().then(function (existing) {
+                    return existing || registration.pushManager.subscribe({
+                        userVisibleOnly: true,
+                        applicationServerKey: keyBytes(publicKey)
+                    });
+                });
+            })
+            .catch(function () { return null; });
+    }
+
+    /**
+     * Asks the browser for permission (it must follow a click — browsers allow the question only then) and hands the
+     * address to `save(endpoint)`. Resolves what save resolves, or null when the person said no.
+     */
+    function enable(publicKey, save) {
+        return Notification.requestPermission()
+            .then(function (answer) { return answer === 'granted' ? subscribe(publicKey) : null; })
+            .then(function (subscription) { return subscription ? save(subscription.endpoint) : null; });
+    }
+
+    /**
+     * The panel's way (Amit, 13/10: "אל תשאל אם להודיע במחשב, פשוט תודיע שם"): no question of ours — the browser's own
+     * permission question, once, started by the "דברו עם נציג" click itself. Resolves the browser's answer.
+     */
+    function ask() {
+        return Notification.permission === 'default'
+            ? Notification.requestPermission()
+            : Promise.resolve(Notification.permission);
+    }
+
+    window.pgSupportPush = {
+        supported: supported,
+        granted: function () { return 'Notification' in window && Notification.permission === 'granted'; },
+        subscribe: subscribe,
+        enable: enable,
+        ask: ask
+    };
+})();

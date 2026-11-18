@@ -1,0 +1,118 @@
+/*
+ * "מה הפונה ראה" (Amit, 14/10): the last error messages the system showed this person, so the support team sees them
+ * the moment they ask for a person — instead of asking "מה כתוב לך?". Kept in this tab only (sessionStorage): at most
+ * 3, from the last 30 minutes, of the person signed in now (the script tag's data-owner, sibSeenOwner() — the next
+ * person on a shared office computer never inherits them). Nothing leaves the browser until the person presses
+ * "דברו עם נציג": the hand-off sends recent() (chat_api.php 'handoff', sibSeenLines()), and then clear().
+ *
+ * What counts: a red toast (showToast(…, 'error') — the answer of every failed sendAjax()) and an error box
+ * (.alert-danger) once it is shown with words in it — the login pages' "פרטים שגויים". Not a pgAlert() window: it says
+ * "התשלום אושר" as often as it warns. Watched in the page, not by wrapping functions: they live in different files
+ * and trees. Shared by the three chats that hand over to a person (chat/chat_widget.php, chat/login_chat_widget.php,
+ * M/inc/footer.php).
+ */
+(function () {
+    'use strict';
+
+    if (window.pgSupportSeen) return;
+
+    const KEY = 'pg_support_seen';
+    const KEEP_MS = 30 * 60 * 1000;
+    const WATCH = '.toast.bg-danger, .alert-danger';
+    const OWNER = (document.currentScript && document.currentScript.dataset.owner) || 'guest';
+
+    function read() {
+        try {
+            const list = JSON.parse(sessionStorage.getItem(KEY) || '[]');
+            return Array.isArray(list)
+                ? list.filter(function (i) { return i && i.o === OWNER && Date.now() - i.at < KEEP_MS; })
+                : [];
+        } catch (e) {
+            return [];
+        }
+    }
+
+    function write(list) {
+        try {
+            sessionStorage.setItem(KEY, JSON.stringify(list.slice(-3)));
+        } catch (e) {
+            // storage full or off — nothing to remember, nothing breaks
+        }
+    }
+
+    function remember(text) {
+        text = String(text || '').replace(/\s+/g, ' ').trim().slice(0, 300);
+        if (text.length < 3) return;
+        const list = read();
+        const last = list[list.length - 1];
+        if (last && last.t === text) {
+            last.at = Date.now();   // the same message again (a second try) — once, at its latest time
+        } else {
+            list.push({ t: text, p: location.pathname, at: Date.now(), o: OWNER });
+        }
+        write(list);
+    }
+
+    function shown(el) {
+        return el.getClientRects().length > 0 && getComputedStyle(el).visibility !== 'hidden';
+    }
+
+    function textOf(el) {
+        const part = el.querySelector('.toast-body');
+        return (part || el).textContent;
+    }
+
+    function look(el) {
+        if (el.nodeType !== 1) return;
+        const found = el.matches(WATCH) ? [el] : [];
+        el.querySelectorAll(WATCH).forEach(function (inner) { found.push(inner); });
+        found.forEach(function (box) {
+            // A toast is shown by script a moment after it is added — read it then.
+            if (box.matches('.toast')) {
+                setTimeout(function () { if (box.isConnected) remember(textOf(box)); }, 50);
+            } else if (shown(box)) {
+                remember(textOf(box));
+            }
+        });
+    }
+
+    function start() {
+        // What a login page was built with — its error after a failed try comes back in the page itself. Elsewhere a red
+        // box present from the start is the page's own notice, not something that just went wrong.
+        if (/^\/(ar\/|en\/)?(login|admin)\/?$|^\/(login[a-z_]*|M\/loginM|M\/personal_login|l)\.php$/.test(location.pathname)) {
+            look(document.body);
+        }
+        new MutationObserver(function (changes) {
+            changes.forEach(function (change) {
+                if (change.type === 'childList') {
+                    change.addedNodes.forEach(look);
+                } else if (change.target.nodeType === 1 && change.target.matches('.alert-danger') && shown(change.target)) {
+                    remember(textOf(change.target));   // an error box that was there all along, now shown
+                }
+            });
+        }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style', 'class'] });
+    }
+
+    /** What to send with the hand-off: [{ t: the words, p: the page, ago: seconds since }], oldest first. */
+    function recent() {
+        return read().map(function (i) {
+            return { t: i.t, p: i.p, ago: Math.max(0, Math.round((Date.now() - i.at) / 1000)) };
+        });
+    }
+
+    /** After a hand-off took them: sent once, never again with the next one. */
+    function clear() {
+        try {
+            sessionStorage.removeItem(KEY);
+        } catch (e) {
+            // nothing kept
+        }
+    }
+
+    window.pgSupportSeen = { recent: recent, remember: remember, clear: clear };
+    if (document.body) {
+        start();
+    } else {
+        document.addEventListener('DOMContentLoaded', start);
+    }
+})();
