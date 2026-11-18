@@ -26,22 +26,29 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <script src="firebase-config.js"></script>
     <script>
       var _pgdb = null;
-      try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); } } catch (e) {}
+      try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {}
+      function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 250); }
       // Log the return in the database: stamp the latest still-out exit as returned.
       function pgCommitReturn(done){
         var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
         var id = d.taz;
         var now = new Date();
         var hh = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
-        try { d.returnTime = hh; localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
-        if (!_pgdb || !id) { done(); return; }
-        var ref = _pgdb.collection('students').doc(id);
-        ref.get().then(function (doc) {
-          if (!doc.exists) { done(); return; }
-          var data = doc.data(); var exits = (data.exits || []).slice();
+        d.returnTime = hh;
+        if (!_pgdb || !id) { try { localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} done(); return; }
+        function commit(exits){
+          exits = (exits || []).slice();
           for (var i = exits.length - 1; i >= 0; i--) { if (!exits[i].returnTime) { exits[i].returnTime = hh; exits[i].status = 'returned'; break; } }
-          ref.update({ exits: exits }).then(done).catch(function(){ done(); });
-        }).catch(function(){ done(); });
+          d.exits = exits; try { localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
+          pgNav(_pgdb.collection('students').doc(id).update({ exits: exits }), done);
+        }
+        if (d.exits !== undefined) {
+          commit(d.exits);   // instant — data came from the previous screen
+        } else {
+          _pgdb.collection('students').doc(id).get().then(function (doc) {
+            commit(doc.exists ? doc.data().exits : []);
+          }).catch(function(){ done(); });
+        }
       }
     </script>
     <script>
@@ -67,7 +74,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         document.getElementById('pgRetX').onclick=closeOv;
         document.getElementById('pgRetCancel').onclick=closeOv;
         ov.onclick=function(e){ if(e.target===ov) closeOv(); };
-        document.getElementById('pgRetOk').onclick=function(){ var b=this; b.disabled=true; b.textContent='מעדכן...'; pgCommitReturn(function(){ window.location.href='מערכת פגישונים דף 6.html'; }); };
+        document.getElementById('pgRetOk').onclick=function(){ var b=this; b.disabled=true; pgCommitReturn(function(){ window.location.href='מערכת פגישונים דף 6.html'; }); };
         return false;
       }
       (function(){
