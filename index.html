@@ -370,11 +370,6 @@
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
 }
-// Pre-download the pass screen so "יצא עכשיו" opens instantly.
-window.addEventListener('load', function () {
-    try { var l = document.createElement('link'); l.rel = 'prefetch'; l.href = 'מערכת פגישונים דף 2.html'; document.head.appendChild(l); } catch (e) {}
-    try { var l4 = document.createElement('link'); l4.rel = 'prefetch'; l4.href = 'מערכת פגישונים דף 4.html'; document.head.appendChild(l4); } catch (e) {}
-});
 </script>
 </body>
 </html>

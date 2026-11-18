@@ -21,18 +21,15 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <link rel="apple-touch-icon" sizes="180x180" href="https://pgishonim.com/M/assets/images/apple-touch-icon.png?v=1788903552">
 
     <title>מערכת פגישונים</title>
-    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script defer src="firebase-config.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
     <script>
-      // Firebase is deferred so the pass shows INSTANTLY; it initialises quietly after the page renders.
       var _pgdb = null;
-      function pgInit(){ try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {} }
-      document.addEventListener('DOMContentLoaded', pgInit);
-      function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 1500); }
-      // Pre-download the next screen so pressing "נעל אישור" swaps instantly.
-      window.addEventListener('load', function(){ try { var l=document.createElement('link'); l.rel='prefetch'; l.href='מערכת פגישונים דף 4.html'; document.head.appendChild(l); } catch(e){} });
-      // Lock the approval = leave school: record & count the exit in the database, then go on.
+      try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {}
+      // Navigate as soon as the write is acknowledged OR after a short beat (write stays queued & durable).
+      function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 250); }
+      // Commit the exit: count it + log it in the database, ONLY when approved here.
       function pgCommitExit(btn){
         if (btn) { btn.disabled = true; }
         var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
@@ -54,11 +51,11 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
             exitTime: hh, returnTime: '', status: 'out', at: now.toISOString()
           });
           var used = (Number(usedBase) || 0) + 1;
-          d.pending = pending; d.exits = exits; d.usedLeaves = used;
+          d.pending = pending; d.exits = exits; d.usedLeaves = used;  // pass new state to the next page
           pgNav(_pgdb.collection('students').doc(id).update({ pending: pending, exits: exits, usedLeaves: used }), go);
         }
         if (d.exits !== undefined || d.pending !== undefined || d.usedLeaves !== undefined) {
-          commit(d.pending, d.exits, d.usedLeaves);   // data came from the previous screen
+          commit(d.pending, d.exits, d.usedLeaves);   // instant — data came from the previous screen
         } else {
           _pgdb.collection('students').doc(id).get().then(function (doc) {
             var data = doc.exists ? doc.data() : {};
