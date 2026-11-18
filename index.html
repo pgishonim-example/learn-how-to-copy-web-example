@@ -23,6 +23,9 @@
         .start-body .form-label { font-weight: 600; }
         #remainBox { font-size: 1.5rem; }
         #remainBox b { color: #18a76c; font-size: 2rem; }
+        .hist-row { display:flex; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid #eee; border-radius:10px; margin-bottom:8px; background:#fafbfc; }
+        .hist-when { font-weight:600; color:#223e9c; }
+        .hist-reason { color:#555; }
     </style>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -55,15 +58,20 @@
             </div>
 
             <div id="resStep" class="start-body" style="display:none">
-                <h2 id="hello" class="text-center mb-3"></h2>
-                <div id="remainBox" class="text-center my-3"></div>
+                <h2 id="hello" class="text-center mb-2"></h2>
+                <div id="remainBox" class="text-center my-2"></div>
+                <div id="usedBox" class="text-center mb-3" style="color:#888;"></div>
                 <div id="proceedWrap" class="d-grid">
                     <button id="proceedBtn" class="btn btn-success btn-lg">צור אישור יציאה</button>
                 </div>
                 <div id="blockedBox" class="alert alert-danger text-center" style="display:none">
                     ניצלתם את כל היציאות שלכם. לא ניתן ליצור אישור נוסף.
                 </div>
-                <div class="text-center mt-3"><a href="#" id="backLink">חזרה</a></div>
+                <div id="historyWrap" class="mt-4" style="display:none">
+                    <h5 class="mb-2">היסטוריית יציאות</h5>
+                    <div id="historyList"></div>
+                </div>
+                <div class="text-center mt-3"><a href="#" id="backLink">חזרה / החלפת משתמש</a></div>
             </div>
 
             <div class="pass-footer" style="text-align:center; padding:12px;">
@@ -107,28 +115,41 @@
                 .catch(function () { pwBtn.disabled = false; pwBtn.textContent = 'המשך'; showErr('שגיאת חיבור למסד הנתונים'); });
         }
 
+        function esc(x){ return String(x==null?'':x).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+
         function showResult(id, s, remaining, pw) {
             document.getElementById('pwStep').style.display = 'none';
             document.getElementById('resStep').style.display = 'block';
             document.getElementById('hello').textContent = 'שלום ' + (s.name || '');
             document.getElementById('remainBox').innerHTML = 'נותרו לך <b>' + Math.max(0, remaining) + '</b> יציאות';
+            var used = Number(s.usedLeaves) || 0, max = Number(s.maxLeaves) || 0;
+            document.getElementById('usedBox').textContent = 'ניצלת ' + used + ' מתוך ' + max;
+
+            var exits = (s.exits || []).slice().reverse();
+            var hWrap = document.getElementById('historyWrap');
+            var hList = document.getElementById('historyList');
+            if (exits.length) {
+                hWrap.style.display = 'block';
+                hList.innerHTML = exits.map(function (x) {
+                    return '<div class="hist-row"><span class="hist-when">' + esc(x.date || '') + ' · ' + esc(x.time || '') + '</span>'
+                        + '<span class="hist-reason">' + esc(x.reason || '') + '</span></div>';
+                }).join('');
+            } else {
+                hWrap.style.display = 'none';
+            }
+
             var proceedWrap = document.getElementById('proceedWrap');
             var blockedBox = document.getElementById('blockedBox');
             if (remaining > 0) {
                 proceedWrap.style.display = '';
                 blockedBox.style.display = 'none';
                 document.getElementById('proceedBtn').onclick = function () {
-                    var btn = this; btn.disabled = true; btn.textContent = 'יוצר...';
-                    db.collection('students').doc(id).update({
-                        usedLeaves: firebase.firestore.FieldValue.increment(1)
-                    }).then(function () {
-                        try {
-                            localStorage.setItem('pg_passData', JSON.stringify({
-                                student: s.name || '', klass: s.class || '', taz: pw
-                            }));
-                        } catch (e) {}
-                        window.location.href = 'fill.html';
-                    }).catch(function () { btn.disabled = false; btn.textContent = 'צור אישור יציאה'; alert('שגיאה בעדכון'); });
+                    try {
+                        localStorage.setItem('pg_passData', JSON.stringify({
+                            student: s.name || '', klass: s.class || '', taz: pw
+                        }));
+                    } catch (e) {}
+                    window.location.href = 'fill.html';
                 };
             } else {
                 proceedWrap.style.display = 'none';

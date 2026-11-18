@@ -21,6 +21,27 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <link rel="apple-touch-icon" sizes="180x180" href="https://pgishonim.com/M/assets/images/apple-touch-icon.png?v=1788903552">
 
     <title>מערכת פגישונים</title>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+      var _pgdb = null;
+      try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); } } catch (e) {}
+      // Commit the exit: count it + log it in the database, ONLY when approved here.
+      function pgCommitExit(btn){
+        if (btn) { btn.disabled = true; btn.textContent = 'מעדכן...'; }
+        var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
+        var id = d.taz;
+        var now = new Date();
+        var hh = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
+        function go(){ try { d.exitTime = hh; localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} window.location.href = 'מערכת פגישונים דף 4.html'; }
+        if (!_pgdb || !id) { go(); return; }
+        _pgdb.collection('students').doc(id).update({
+          usedLeaves: firebase.firestore.FieldValue.increment(1),
+          exits: firebase.firestore.FieldValue.arrayUnion({ at: now.toISOString(), date: d.date || '', time: hh, reason: d.reason || '' })
+        }).then(go).catch(function(){ if (btn) { btn.disabled = false; btn.textContent = 'נעל אישור'; } alert('שגיאה בעדכון מסד הנתונים'); });
+      }
+    </script>
     <script>
       function pgGo(url){ window.location.href = url; return false; }
       function pgSetExitTime(){ try { var d=JSON.parse(localStorage.getItem('pg_passData')||'{}'); var n=new Date(); d.exitTime=('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2); localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} }
@@ -305,7 +326,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
                 <div class="modal-body">האם אתה בטוח שתרצה לעדכן יציאה? האישור ינעל.</div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" onclick="pgCloseExitModal(); return false;">ביטול</button>
-                    <button type="button" class="btn btn-success" onclick="pgSetExitTime(); return pgGo('מערכת פגישונים דף 4.html');">נעל אישור</button>
+                    <button type="button" class="btn btn-success" onclick="pgCommitExit(this); return false;">נעל אישור</button>
                 </div>
             </div>
         </div>

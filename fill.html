@@ -57,10 +57,6 @@
                         <input type="date" id="f_date" class="form-control">
                     </div>
                     <div class="col-12 col-sm-6 mb-3">
-                        <label class="form-label" for="f_time">שעה</label>
-                        <input type="time" id="f_time" class="form-control">
-                    </div>
-                    <div class="col-12 col-sm-6 mb-3">
                         <label class="form-label" for="f_reason">סיבה</label>
                         <input type="text" id="f_reason" class="form-control" placeholder="סיבת היציאה">
                     </div>
@@ -94,16 +90,17 @@
         document.getElementById('f_student').value = g('student');
         document.getElementById('f_klass').value = g('klass');
         document.getElementById('f_date').value = saved.date ? displayToISO(saved.date) : todayISO();
-        document.getElementById('f_time').value = g('time');
         document.getElementById('f_reason').value = g('reason');
 
         document.getElementById('setupForm').addEventListener('submit', function(e){
             e.preventDefault();
             function v(id){ return (document.getElementById(id).value || '').trim(); }
             var prev = {}; try { prev = JSON.parse(localStorage.getItem('pg_passData') || '{}') || {}; } catch(e){}
+            var nowT = new Date();
+            var nowHHMM = ('0' + nowT.getHours()).slice(-2) + ':' + ('0' + nowT.getMinutes()).slice(-2);
             var data = {
                 student: v('f_student'), klass: v('f_klass'),
-                date: isoToDisplay(v('f_date')), time: v('f_time'),
+                date: isoToDisplay(v('f_date')), time: nowHHMM,
                 reason: v('f_reason'),
                 taz: prev.taz || ''
             };
