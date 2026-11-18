@@ -22,17 +22,81 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
 
     <title>מערכת פגישונים</title>
     <script>
-      // Local-only: tapping "נעל אישור" stamps the exit time on THIS phone and moves on. Nothing is sent anywhere.
-      function pgCommitExit(btn){
-        if (btn) { btn.disabled = true; }
-        var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
-        var now = new Date();
-        var hh = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
-        try { d.exitTime = hh; localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
-        window.location.href = 'מערכת פגישונים דף 4.html';
+      // 100% LOCAL, 100% INSTANT: exit + return happen in place on THIS screen — no page load, nothing sent anywhere.
+      var PG_LOCK_IMG = './מערכת פגישונים דף 4_files/lock.webp';
+      function pgTwo(n){ return ('0'+n).slice(-2); }
+      function pgNowHHMM(){ var d=new Date(); return pgTwo(d.getHours())+':'+pgTwo(d.getMinutes()); }
+      function pgSave(fn){ var d={}; try{ d=JSON.parse(localStorage.getItem('pg_passData')||'{}'); }catch(e){} fn(d); try{ localStorage.setItem('pg_passData', JSON.stringify(d)); }catch(e){} }
+
+      // set (or create) a time tile by its label
+      function pgSetTile(label, value){
+        var grid=document.querySelector('.info-grid'); if(!grid) return;
+        var tiles=grid.querySelectorAll('.info-tile'), t=null;
+        for(var i=0;i<tiles.length;i++){ var l=tiles[i].querySelector('.info-label'); if(l && l.textContent.trim()===label){ t=tiles[i]; break; } }
+        if(!t){ t=document.createElement('div'); t.className='info-tile'; t.innerHTML='<div class="info-label"></div><div class="info-value"></div>'; t.querySelector('.info-label').textContent=label; grid.appendChild(t); }
+        t.querySelector('.info-value').textContent=value;
       }
-      // Pre-download the next screen so it opens instantly.
-      window.addEventListener('load', function(){ try { var l=document.createElement('link'); l.rel='prefetch'; l.href='מערכת פגישונים דף 4.html'; document.head.appendChild(l); } catch(e){} });
+      // switch the status stamp/pill between confirm / out / back
+      function pgSetStatus(cls, icon, text){
+        var dock=document.querySelector('.status-dock'); if(dock){ dock.classList.remove('status-confirm','status-out','status-back'); dock.classList.add(cls); }
+        var pill=document.querySelector('.status-dock .status-pill'); if(pill){ pill.className='status-pill '+cls; pill.innerHTML='<i class="bi '+icon+'" aria-hidden="true"></i> '+text; }
+        var img=document.querySelector('.status-dock .approval-stamp img'); if(img && cls!=='status-confirm'){ img.src=PG_LOCK_IMG; }
+      }
+      function pgSetAction(html){ var a=document.querySelector('.exit-pass-actions'); if(a){ a.innerHTML=html; } }
+
+      // Tap "נעל אישור" -> instantly show the "left school" state.
+      function pgCommitExit(btn){
+        if(btn){ btn.disabled=true; }
+        if(typeof pgCloseExitModal==='function'){ pgCloseExitModal(); }
+        var hh=pgNowHHMM();
+        pgSave(function(d){ d.exitTime=hh; d.returnTime=''; });
+        pgShowOut(hh, '--:--');
+      }
+      function pgShowOut(exitTime, returnTime){
+        pgSetTile('שעת יציאה', exitTime);
+        pgSetTile('שעת חזרה', returnTime||'--:--');
+        pgSetStatus('status-out','bi-lock-fill','יצא מבית הספר');
+        pgSetAction('<button class="btn btn-primary exit-action-btn" onclick="return pgReturnConfirm();">עדכון חזרה לבית הספר</button>');
+      }
+      // Confirm return -> instantly show the "back at school" state.
+      function pgCommitReturn(){
+        var hh=pgNowHHMM();
+        pgSave(function(d){ d.returnTime=hh; });
+        pgShowBack(hh);
+      }
+      function pgShowBack(returnTime){
+        pgSetTile('שעת חזרה', returnTime);
+        pgSetStatus('status-back','bi-lock-fill','חזר לבית הספר');
+        pgSetAction('<a class="btn btn-outline-secondary exit-action-btn" href="index.html">אישור חדש</a>');
+      }
+      // Return confirmation popup (in-page, no navigation).
+      function pgReturnConfirm(){
+        if(document.getElementById('pgReturnOverlay')) return false;
+        var ov=document.createElement('div'); ov.id='pgReturnOverlay'; ov.setAttribute('dir','rtl');
+        ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px;';
+        ov.innerHTML='<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;text-align:right;">'
+          +'<div style="padding:18px 20px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">'
+          +'<h5 style="margin:0;font-size:1.15rem;font-weight:700;">אישור חזרה</h5>'
+          +'<span id="pgRetX" style="cursor:pointer;font-size:1.6rem;line-height:1;color:#888;">&times;</span></div>'
+          +'<div style="padding:22px 20px;font-size:1.02rem;color:#333;">האם אתה בטוח שתרצה לעדכן חזרה לבית הספר?</div>'
+          +'<div style="padding:14px 20px;display:flex;gap:10px;border-top:1px solid #eee;">'
+          +'<button id="pgRetOk" style="padding:11px 20px;border-radius:9px;border:none;background:#2a7bdc;color:#fff;cursor:pointer;font-size:1rem;font-weight:700;">עדכן חזרה</button>'
+          +'<button id="pgRetCancel" style="padding:11px 20px;border-radius:9px;border:1px solid #ccc;background:#fff;color:#333;cursor:pointer;font-size:1rem;">ביטול</button>'
+          +'</div></div>';
+        document.body.appendChild(ov);
+        function closeOv(){ var e=document.getElementById('pgReturnOverlay'); if(e&&e.parentNode) e.parentNode.removeChild(e); }
+        document.getElementById('pgRetX').onclick=closeOv;
+        document.getElementById('pgRetCancel').onclick=closeOv;
+        ov.onclick=function(e){ if(e.target===ov) closeOv(); };
+        document.getElementById('pgRetOk').onclick=function(){ closeOv(); pgCommitReturn(); };
+        return false;
+      }
+      // If the app is reopened after leaving/returning, resume the right state instead of showing the pass again.
+      document.addEventListener('DOMContentLoaded', function(){
+        var d={}; try{ d=JSON.parse(localStorage.getItem('pg_passData')||'{}'); }catch(e){}
+        if(d.returnTime){ pgShowOut(d.exitTime||'--:--', d.returnTime); pgShowBack(d.returnTime); }
+        else if(d.exitTime){ pgShowOut(d.exitTime, '--:--'); }
+      });
     </script>
     <script>
       function pgGo(url){ window.location.href = url; return false; }
