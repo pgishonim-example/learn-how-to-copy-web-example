@@ -24,6 +24,8 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <script>
       function pgGo(url){ window.location.href = url; return false; }
       function pgSetReturnTime(){ try { var d=JSON.parse(localStorage.getItem('pg_passData')||'{}'); var n=new Date(); d.returnTime=('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2); localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} }
+      function pgOpenReturnModal(){ var m=document.getElementById('returnUpdateModal'); if(!m) return; m.classList.add('show'); m.style.display='block'; m.removeAttribute('aria-hidden'); m.setAttribute('aria-modal','true'); document.body.classList.add('modal-open'); if(!document.getElementById('pgBackdrop')){ var b=document.createElement('div'); b.className='modal-backdrop fade show'; b.id='pgBackdrop'; b.addEventListener('click', pgCloseReturnModal); document.body.appendChild(b); } }
+      function pgCloseReturnModal(){ var m=document.getElementById('returnUpdateModal'); if(m){ m.classList.remove('show'); m.style.display='none'; m.setAttribute('aria-hidden','true'); m.removeAttribute('aria-modal'); } document.body.classList.remove('modal-open'); var b=document.getElementById('pgBackdrop'); if(b) b.remove(); }
       (function(){
         function fill(){
           var raw; try { raw = localStorage.getItem('pg_passData'); } catch(e){ return; }
@@ -203,7 +205,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
                                                             אושר על ידי:                                                       </div>
                     </div>
                     <div class="exit-pass-actions">
-                                                                                    <button name="fakeSubmitReturnToSchool" id="fakeSubmitReturnToSchool" class="btn btn-primary exit-action-btn" onclick="pgSetReturnTime(); return pgGo('מערכת פגישונים דף 5.html');">עדכון חזרה לבית הספר</button>
+                                                                                    <button name="fakeSubmitReturnToSchool" id="fakeSubmitReturnToSchool" class="btn btn-primary exit-action-btn" onclick="pgOpenReturnModal(); return false;">עדכון חזרה לבית הספר</button>
                                                                         </div>
                 </div>
 
@@ -321,12 +323,12 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="returnUpdateModalLabel">אישור חזרה</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="סגור"></button>
+                    <button type="button" class="btn-close" aria-label="סגור" onclick="pgCloseReturnModal(); return false;"></button>
                 </div>
                 <div class="modal-body">האם אתה בטוח שתרצה לעדכן חזרה לבית הספר?</div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">ביטול</button>
-                    <button type="button" class="btn btn-primary" onclick="submitReturnToSchoolSubmit();">עדכן חזרה</button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="pgCloseReturnModal(); return false;">ביטול</button>
+                    <button type="button" class="btn btn-primary" onclick="pgSetReturnTime(); return pgGo('מערכת פגישונים דף 5.html');">עדכן חזרה</button>
                 </div>
             </div>
         </div>
