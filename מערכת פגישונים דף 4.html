@@ -21,12 +21,13 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <link rel="apple-touch-icon" sizes="180x180" href="https://pgishonim.com/M/assets/images/apple-touch-icon.png?v=1788903552">
 
     <title>מערכת פגישונים</title>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script defer src="firebase-config.js"></script>
     <script>
+      // Firebase is deferred so this screen shows INSTANTLY; it initialises quietly after render.
       var _pgdb = null;
-      try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {}
+      function pgInit(){ try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {}
       function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 250); }
       // On load: save the exit that was just locked on the previous screen, in the background (no waiting).
       function pgFlush(){
@@ -39,7 +40,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         d.pendingWrite = false; try { localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
         try { _pgdb.collection('students').doc(d.taz).update(upd); } catch(e){}
       }
-      if (document.readyState !== 'loading') pgFlush(); else document.addEventListener('DOMContentLoaded', pgFlush);
+      document.addEventListener('DOMContentLoaded', function(){ pgInit(); pgFlush(); });
       // Mark the current exit as returned and move on. Writes the full state so nothing is lost.
       function pgCommitReturn(done){
         var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
