@@ -27,18 +27,14 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <script>
       var _pgdb = null;
       try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {}
-      // Navigate as soon as the write is acknowledged OR after a short beat (write stays queued & durable).
-      function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 250); }
-      // Commit the exit: count it + log it in the database, ONLY when approved here.
+      // Lock the approval = leave school. INSTANT: record the exit locally and go straight on.
+      // The database write is handed to the next screen (pgFlush there) so there is zero waiting here.
       function pgCommitExit(btn){
         if (btn) { btn.disabled = true; }
         var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
-        var id = d.taz;
         var now = new Date();
         var hh = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
-        function go(){ try { d.exitTime = hh; localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} window.location.href = 'מערכת פגישונים דף 4.html'; }
-        if (!_pgdb || !id) { go(); return; }
-        function commit(pending, exits, usedBase){
+        function proceed(pending, exits, usedBase){
           pending = (pending || []).slice(); exits = (exits || []).slice();
           var p = null;
           if (d.pendingId) { for (var i = 0; i < pending.length; i++) { if (pending[i].id === d.pendingId) { p = pending[i]; pending.splice(i, 1); break; } } }
@@ -50,17 +46,20 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
             reason: (p && p.reason) || d.reason || '',
             exitTime: hh, returnTime: '', status: 'out', at: now.toISOString()
           });
-          var used = (Number(usedBase) || 0) + 1;
-          d.pending = pending; d.exits = exits; d.usedLeaves = used;  // pass new state to the next page
-          pgNav(_pgdb.collection('students').doc(id).update({ pending: pending, exits: exits, usedLeaves: used }), go);
+          d.pending = pending; d.exits = exits; d.usedLeaves = (Number(usedBase) || 0) + 1;
+          d.exitTime = hh; d.pendingWrite = true;   // the next screen saves this to the DB in the background
+          try { localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
+          window.location.href = 'מערכת פגישונים דף 4.html';
         }
         if (d.exits !== undefined || d.pending !== undefined || d.usedLeaves !== undefined) {
-          commit(d.pending, d.exits, d.usedLeaves);   // instant — data came from the previous screen
-        } else {
-          _pgdb.collection('students').doc(id).get().then(function (doc) {
+          proceed(d.pending, d.exits, d.usedLeaves);   // instant — data came from the previous screen
+        } else if (_pgdb && d.taz) {
+          _pgdb.collection('students').doc(d.taz).get().then(function (doc) {
             var data = doc.exists ? doc.data() : {};
-            commit(data.pending, data.exits, data.usedLeaves);
-          }).catch(go);
+            proceed(data.pending, data.exits, data.usedLeaves);
+          }).catch(function(){ proceed([], [], 0); });
+        } else {
+          proceed(d.pending, d.exits, d.usedLeaves);
         }
       }
     </script>
