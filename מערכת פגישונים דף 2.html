@@ -21,12 +21,14 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <link rel="apple-touch-icon" sizes="180x180" href="https://pgishonim.com/M/assets/images/apple-touch-icon.png?v=1788903552">
 
     <title>מערכת פגישונים</title>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-    <script src="firebase-config.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script defer src="firebase-config.js"></script>
     <script>
+      // Firebase loads in the BACKGROUND so the pass shows instantly; it is ready well before you tap "נעל אישור".
       var _pgdb = null;
-      try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {}
+      function pgInit(){ try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {} }
+      document.addEventListener('DOMContentLoaded', pgInit);
       // Safe speed-up: pre-download the next screen (does NOT change saving).
       window.addEventListener('load', function(){ try { var l=document.createElement('link'); l.rel='prefetch'; l.href='מערכת פגישונים דף 4.html'; document.head.appendChild(l); } catch(e){} });
       // Navigate as soon as the write is acknowledged OR after a short beat (write stays queued & durable).
@@ -39,6 +41,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         var now = new Date();
         var hh = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
         function go(){ try { d.exitTime = hh; localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} window.location.href = 'מערכת פגישונים דף 4.html'; }
+        if (!_pgdb) { pgInit(); }
         if (!_pgdb || !id) { go(); return; }
         function commit(pending, exits, usedBase){
           pending = (pending || []).slice(); exits = (exits || []).slice();
