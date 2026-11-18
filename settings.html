@@ -157,6 +157,8 @@
         <h4 id="editTitle">עריכת תלמיד</h4>
         <label class="form-label">שם</label>
         <input id="eName" class="form-control mb-3">
+        <label class="form-label">כיתה</label>
+        <input id="eClass" class="form-control mb-3" placeholder="לדוגמה: י3">
         <label class="form-label">סיסמה</label>
         <input id="ePw" class="form-control mb-1" dir="ltr" disabled>
         <div class="muted mb-3" style="font-size:.82rem;">לא ניתן לשנות סיסמה — למחוק וליצור מחדש.</div>
@@ -182,6 +184,8 @@
         <h4>הוספת תלמיד</h4>
         <label class="form-label">שם התלמיד</label>
         <input id="nName" class="form-control mb-3" placeholder="שם מלא">
+        <label class="form-label">כיתה</label>
+        <input id="nClass" class="form-control mb-3" placeholder="לדוגמה: י3">
         <label class="form-label">סיסמה</label>
         <input id="nPw" class="form-control mb-3" placeholder="סיסמה לכניסה" dir="ltr">
         <label class="form-label">מכסת יציאות</label>
@@ -342,7 +346,7 @@
             var s = st.data;
             var max = Number(s.maxLeaves) || 0, used = Number(s.usedLeaves) || 0, rem = Math.max(0, max - used);
             return '<tr data-id="' + esc(st.id) + '">'
-                + '<td>' + esc(s.name) + '</td>'
+                + '<td>' + esc(s.name) + (s.class ? ' <span class="muted" style="font-size:.85rem;">· ' + esc(s.class) + '</span>' : '') + '</td>'
                 + '<td dir="ltr">' + esc(st.id) + '</td>'
                 + '<td>' + max + '</td>'
                 + '<td>' + used + '</td>'
@@ -386,6 +390,7 @@
         editId = st.id;
         document.getElementById('editTitle').textContent = 'עריכת ' + (st.data.name || 'תלמיד');
         document.getElementById('eName').value = st.data.name || '';
+        document.getElementById('eClass').value = st.data.class || '';
         document.getElementById('ePw').value = st.id;
         document.getElementById('eMax').value = Number(st.data.maxLeaves) || 0;
         document.getElementById('editErr').style.display = 'none';
@@ -408,11 +413,12 @@
     });
     document.getElementById('editSave').onclick = function(){
         var name = document.getElementById('eName').value.trim();
+        var klass = document.getElementById('eClass').value.trim();
         var max = Number(document.getElementById('eMax').value);
         var err = document.getElementById('editErr'); err.style.display='none';
         if (!name) { err.textContent='יש להזין שם'; err.style.display='block'; return; }
         if (!(max >= 0)) { err.textContent='מכסה לא תקינה'; err.style.display='block'; return; }
-        db.collection('students').doc(editId).update({ name: name, maxLeaves: max }).then(function(){
+        db.collection('students').doc(editId).update({ name: name, class: klass, maxLeaves: max }).then(function(){
             closeM('editModal'); loadStudents();
         }).catch(function(){ err.textContent='שמירה נכשלה'; err.style.display='block'; });
     };
@@ -441,12 +447,14 @@
 
     // ---- add student ----
     document.getElementById('addOpenBtn').onclick = function(){
-        document.getElementById('nName').value=''; document.getElementById('nPw').value='';
+        document.getElementById('nName').value=''; document.getElementById('nClass').value='';
+        document.getElementById('nPw').value='';
         document.getElementById('nMax').value=''; document.getElementById('addErr').style.display='none';
         openM('addModal');
     };
     document.getElementById('addBtn').onclick = function () {
         var name = document.getElementById('nName').value.trim();
+        var klass = document.getElementById('nClass').value.trim();
         var pw = document.getElementById('nPw').value.trim();
         var max = Number(document.getElementById('nMax').value) || 0;
         var err = document.getElementById('addErr'); err.style.display = 'none';
@@ -454,7 +462,7 @@
         var ref = db.collection('students').doc(pw);
         ref.get().then(function (d) {
             if (d.exists) { err.textContent = 'סיסמה זו כבר בשימוש'; err.style.display = 'block'; return; }
-            ref.set({ name: name, maxLeaves: max, usedLeaves: 0 }).then(function () {
+            ref.set({ name: name, class: klass, maxLeaves: max, usedLeaves: 0 }).then(function () {
                 closeM('addModal'); loadStudents();
             }).catch(function(){ err.textContent='שמירה נכשלה'; err.style.display='block'; });
         });
