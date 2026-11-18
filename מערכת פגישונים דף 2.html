@@ -27,16 +27,21 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <script>
       // Firebase is deferred so the pass shows INSTANTLY; it initialises quietly after the page renders.
       var _pgdb = null;
-      function pgInit(){ try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); } } catch (e) {} }
+      function pgInit(){ try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {} }
       document.addEventListener('DOMContentLoaded', pgInit);
-      // Lock the approval = leave school. INSTANT: record the exit locally and go straight on.
-      // The database write is handed to the next screen (pgFlush there) so there is zero waiting here.
+      function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 1500); }
+      // Pre-download the next screen so pressing "נעל אישור" swaps instantly.
+      window.addEventListener('load', function(){ try { var l=document.createElement('link'); l.rel='prefetch'; l.href='מערכת פגישונים דף 4.html'; document.head.appendChild(l); } catch(e){} });
+      // Lock the approval = leave school: record & count the exit in the database, then go on.
       function pgCommitExit(btn){
         if (btn) { btn.disabled = true; }
         var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
+        var id = d.taz;
         var now = new Date();
         var hh = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
-        function proceed(pending, exits, usedBase){
+        function go(){ try { d.exitTime = hh; localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} window.location.href = 'מערכת פגישונים דף 4.html'; }
+        if (!_pgdb || !id) { go(); return; }
+        function commit(pending, exits, usedBase){
           pending = (pending || []).slice(); exits = (exits || []).slice();
           var p = null;
           if (d.pendingId) { for (var i = 0; i < pending.length; i++) { if (pending[i].id === d.pendingId) { p = pending[i]; pending.splice(i, 1); break; } } }
@@ -48,20 +53,17 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
             reason: (p && p.reason) || d.reason || '',
             exitTime: hh, returnTime: '', status: 'out', at: now.toISOString()
           });
-          d.pending = pending; d.exits = exits; d.usedLeaves = (Number(usedBase) || 0) + 1;
-          d.exitTime = hh; d.pendingWrite = true;   // the next screen saves this to the DB in the background
-          try { localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
-          window.location.href = 'מערכת פגישונים דף 4.html';
+          var used = (Number(usedBase) || 0) + 1;
+          d.pending = pending; d.exits = exits; d.usedLeaves = used;
+          pgNav(_pgdb.collection('students').doc(id).update({ pending: pending, exits: exits, usedLeaves: used }), go);
         }
         if (d.exits !== undefined || d.pending !== undefined || d.usedLeaves !== undefined) {
-          proceed(d.pending, d.exits, d.usedLeaves);   // instant — data came from the previous screen
-        } else if (_pgdb && d.taz) {
-          _pgdb.collection('students').doc(d.taz).get().then(function (doc) {
-            var data = doc.exists ? doc.data() : {};
-            proceed(data.pending, data.exits, data.usedLeaves);
-          }).catch(function(){ proceed([], [], 0); });
+          commit(d.pending, d.exits, d.usedLeaves);   // data came from the previous screen
         } else {
-          proceed(d.pending, d.exits, d.usedLeaves);
+          _pgdb.collection('students').doc(id).get().then(function (doc) {
+            var data = doc.exists ? doc.data() : {};
+            commit(data.pending, data.exits, data.usedLeaves);
+          }).catch(go);
         }
       }
     </script>

@@ -28,20 +28,11 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
       // Firebase is deferred so this screen shows INSTANTLY; it initialises quietly after render.
       var _pgdb = null;
       function pgInit(){ try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {}
-      function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 250); }
-      // On load: save the exit that was just locked on the previous screen, in the background (no waiting).
-      function pgFlush(){
-        var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
-        if (!d.pendingWrite || !_pgdb || !d.taz) return;
-        var upd = {};
-        if (d.pending !== undefined) upd.pending = d.pending;
-        if (d.exits !== undefined) upd.exits = d.exits;
-        if (d.usedLeaves !== undefined) upd.usedLeaves = d.usedLeaves;
-        d.pendingWrite = false; try { localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
-        try { _pgdb.collection('students').doc(d.taz).update(upd); } catch(e){}
-      }
-      document.addEventListener('DOMContentLoaded', function(){ pgInit(); pgFlush(); });
-      // Mark the current exit as returned and move on. Writes the full state so nothing is lost.
+      function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 1500); }
+      document.addEventListener('DOMContentLoaded', pgInit);
+      // Pre-download the next screen so the return swaps instantly.
+      window.addEventListener('load', function(){ try { var l=document.createElement('link'); l.rel='prefetch'; l.href='מערכת פגישונים דף 6.html'; document.head.appendChild(l); } catch(e){} });
+      // Mark the current exit as returned in the database, then move on.
       function pgCommitReturn(done){
         var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
         var id = d.taz;
@@ -51,13 +42,10 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         function finish(exits){
           exits = (exits || []).slice();
           for (var i = exits.length - 1; i >= 0; i--) { if (!exits[i].returnTime) { exits[i].returnTime = hh; exits[i].status = 'returned'; break; } }
-          d.exits = exits; d.pendingWrite = false;
+          d.exits = exits;
           try { localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
           if (!_pgdb || !id) { done(); return; }
-          var upd = { exits: exits };
-          if (d.pending !== undefined) upd.pending = d.pending;
-          if (d.usedLeaves !== undefined) upd.usedLeaves = d.usedLeaves;
-          pgNav(_pgdb.collection('students').doc(id).update(upd), done);
+          pgNav(_pgdb.collection('students').doc(id).update({ exits: exits }), done);
         }
         if (d.exits !== undefined) {
           finish(d.exits);
