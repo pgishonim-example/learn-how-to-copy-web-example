@@ -27,6 +27,8 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <script>
       var _pgdb = null;
       try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); try { _pgdb.enablePersistence({ synchronizeTabs: true }); } catch (e) {} } } catch (e) {}
+      // Safe speed-up: pre-download the next screen (does NOT change saving).
+      window.addEventListener('load', function(){ try { var l=document.createElement('link'); l.rel='prefetch'; l.href='מערכת פגישונים דף 4.html'; document.head.appendChild(l); } catch(e){} });
       // Navigate as soon as the write is acknowledged OR after a short beat (write stays queued & durable).
       function pgNav(promise, go){ var done = false; function once(){ if (done) return; done = true; go(); } if (promise && promise.then) { promise.then(once).catch(once); } setTimeout(once, 250); }
       // Commit the exit: count it + log it in the database, ONLY when approved here.

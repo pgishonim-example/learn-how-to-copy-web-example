@@ -370,6 +370,13 @@
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
 }
+// Safe speed-up: quietly pre-download the next screens so navigation is quicker (does NOT change saving).
+window.addEventListener('load', function () {
+    var pages = ['מערכת פגישונים דף 2.html', 'מערכת פגישונים דף 4.html'];
+    for (var i = 0; i < pages.length; i++) {
+        try { var l = document.createElement('link'); l.rel = 'prefetch'; l.href = pages[i]; document.head.appendChild(l); } catch (e) {}
+    }
+});
 </script>
 </body>
 </html>
