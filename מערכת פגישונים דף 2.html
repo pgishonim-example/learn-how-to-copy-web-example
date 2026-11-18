@@ -38,7 +38,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         if (!_pgdb || !id) { go(); return; }
         _pgdb.collection('students').doc(id).update({
           usedLeaves: firebase.firestore.FieldValue.increment(1),
-          exits: firebase.firestore.FieldValue.arrayUnion({ at: now.toISOString(), date: d.date || '', time: hh, reason: d.reason || '' })
+          exits: firebase.firestore.FieldValue.arrayUnion({ at: now.toISOString(), date: d.date || '', klass: d.klass || '', time: hh, reason: d.reason || '', returnTime: '', status: 'out' })
         }).then(go).catch(function(){ if (btn) { btn.disabled = false; btn.textContent = 'נעל אישור'; } alert('שגיאה בעדכון מסד הנתונים'); });
       }
     </script>

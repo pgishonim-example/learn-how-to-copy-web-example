@@ -21,6 +21,29 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <link rel="apple-touch-icon" sizes="180x180" href="https://pgishonim.com/M/assets/images/apple-touch-icon.png?v=1788903552">
 
     <title>מערכת פגישונים</title>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script>
+      var _pgdb = null;
+      try { var _c = window.firebaseConfig || {}; if (_c.apiKey && _c.apiKey.indexOf('PASTE') === -1) { firebase.initializeApp(_c); _pgdb = firebase.firestore(); } } catch (e) {}
+      // Log the return in the database: stamp the latest still-out exit as returned.
+      function pgCommitReturn(done){
+        var d = {}; try { d = JSON.parse(localStorage.getItem('pg_passData') || '{}'); } catch(e){}
+        var id = d.taz;
+        var now = new Date();
+        var hh = ('0'+now.getHours()).slice(-2) + ':' + ('0'+now.getMinutes()).slice(-2);
+        try { d.returnTime = hh; localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){}
+        if (!_pgdb || !id) { done(); return; }
+        var ref = _pgdb.collection('students').doc(id);
+        ref.get().then(function (doc) {
+          if (!doc.exists) { done(); return; }
+          var data = doc.data(); var exits = (data.exits || []).slice();
+          for (var i = exits.length - 1; i >= 0; i--) { if (!exits[i].returnTime) { exits[i].returnTime = hh; exits[i].status = 'returned'; break; } }
+          ref.update({ exits: exits }).then(done).catch(function(){ done(); });
+        }).catch(function(){ done(); });
+      }
+    </script>
     <script>
       function pgGo(url){ window.location.href = url; return false; }
       function pgSetReturnTime(){ try { var d=JSON.parse(localStorage.getItem('pg_passData')||'{}'); var n=new Date(); d.returnTime=('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2); localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} }
@@ -44,7 +67,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         document.getElementById('pgRetX').onclick=closeOv;
         document.getElementById('pgRetCancel').onclick=closeOv;
         ov.onclick=function(e){ if(e.target===ov) closeOv(); };
-        document.getElementById('pgRetOk').onclick=function(){ pgSetReturnTime(); window.location.href='מערכת פגישונים דף 6.html'; };
+        document.getElementById('pgRetOk').onclick=function(){ var b=this; b.disabled=true; b.textContent='מעדכן...'; pgCommitReturn(function(){ window.location.href='מערכת פגישונים דף 6.html'; }); };
         return false;
       }
       (function(){

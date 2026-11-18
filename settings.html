@@ -82,6 +82,16 @@
     </div>
 </div>
 
+<div id="histModal" dir="rtl" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; z-index:9999; background:rgba(0,0,0,.5); align-items:center; justify-content:center; padding:16px;">
+    <div style="background:#fff; border-radius:14px; max-width:520px; width:100%; max-height:80vh; overflow:auto; padding:20px; text-align:right;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h4 id="histTitle" style="margin:0;"></h4>
+            <button id="histClose" class="btn btn-sm btn-outline-secondary">סגור</button>
+        </div>
+        <div id="histBody"></div>
+    </div>
+</div>
+
 <script>
 (function () {
     var cfg = window.firebaseConfig || {};
@@ -137,6 +147,7 @@
                     + '<td>' + used + '</td>'
                     + '<td><span class="pill ' + (rem > 0 ? 'ok' : 'no') + '">' + rem + '</span></td>'
                     + '<td class="row-actions" style="white-space:nowrap;">'
+                    + '<button class="btn btn-sm btn-outline-primary" data-act="hist">היסטוריה</button>'
                     + '<button class="btn btn-sm btn-outline-secondary" data-act="edit">ערוך</button>'
                     + '<button class="btn btn-sm btn-outline-success" data-act="reset">איפוס</button>'
                     + '<button class="btn btn-sm btn-outline-danger" data-act="del">מחק</button>'
@@ -161,8 +172,28 @@
                 var max = prompt('מכסת יציאות:', s.maxLeaves); if (max === null) return;
                 ref.update({ name: name.trim(), maxLeaves: Number(max) || 0 }).then(loadStudents);
             });
+        } else if (act === 'hist') {
+            ref.get().then(function (d) { showHistory(d.data()); });
         }
     });
+
+    function showHistory(s) {
+        document.getElementById('histTitle').textContent = 'היסטוריה — ' + (s.name || '');
+        var exits = (s.exits || []).slice().reverse();
+        var body = document.getElementById('histBody');
+        if (!exits.length) {
+            body.innerHTML = '<div class="muted">אין יציאות עדיין</div>';
+        } else {
+            body.innerHTML = exits.map(function (x) {
+                var ret = x.returnTime ? ('חזר ' + esc(x.returnTime)) : 'עדיין בחוץ';
+                return '<div style="padding:10px 4px; border-bottom:1px solid #eee;"><b>' + esc(x.date || '') + '</b> · יצא ' + esc(x.time || '') + ' · ' + ret
+                    + '<br><span class="muted">' + esc(x.reason || '') + '</span></div>';
+            }).join('');
+        }
+        document.getElementById('histModal').style.display = 'flex';
+    }
+    document.getElementById('histClose').onclick = function () { document.getElementById('histModal').style.display = 'none'; };
+    document.getElementById('histModal').addEventListener('click', function (e) { if (e.target === this) this.style.display = 'none'; });
 
     document.getElementById('addBtn').onclick = function () {
         var name = document.getElementById('nName').value.trim();

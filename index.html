@@ -131,8 +131,9 @@
             if (exits.length) {
                 hWrap.style.display = 'block';
                 hList.innerHTML = exits.map(function (x) {
-                    return '<div class="hist-row"><span class="hist-when">' + esc(x.date || '') + ' · ' + esc(x.time || '') + '</span>'
-                        + '<span class="hist-reason">' + esc(x.reason || '') + '</span></div>';
+                    var ret = x.returnTime ? ('חזר ' + esc(x.returnTime)) : 'עדיין בחוץ';
+                    return '<div class="hist-row"><span class="hist-when">' + esc(x.date || '') + ' · יצא ' + esc(x.time || '') + '</span>'
+                        + '<span class="hist-reason">' + esc(x.reason || '') + ' · ' + ret + '</span></div>';
                 }).join('');
             } else {
                 hWrap.style.display = 'none';
