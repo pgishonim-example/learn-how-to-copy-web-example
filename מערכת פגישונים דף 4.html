@@ -24,8 +24,29 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <script>
       function pgGo(url){ window.location.href = url; return false; }
       function pgSetReturnTime(){ try { var d=JSON.parse(localStorage.getItem('pg_passData')||'{}'); var n=new Date(); d.returnTime=('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2); localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} }
-      function pgOpenReturnModal(){ var m=document.getElementById('returnUpdateModal'); if(!m) return; m.classList.add('show'); m.style.display='block'; m.removeAttribute('aria-hidden'); m.setAttribute('aria-modal','true'); document.body.classList.add('modal-open'); if(!document.getElementById('pgBackdrop')){ var b=document.createElement('div'); b.className='modal-backdrop fade show'; b.id='pgBackdrop'; b.addEventListener('click', pgCloseReturnModal); document.body.appendChild(b); } }
-      function pgCloseReturnModal(){ var m=document.getElementById('returnUpdateModal'); if(m){ m.classList.remove('show'); m.style.display='none'; m.setAttribute('aria-hidden','true'); m.removeAttribute('aria-modal'); } document.body.classList.remove('modal-open'); var b=document.getElementById('pgBackdrop'); if(b) b.remove(); }
+      function pgReturnConfirm(){
+        if(document.getElementById('pgReturnOverlay')) return false;
+        var ov=document.createElement('div');
+        ov.id='pgReturnOverlay';
+        ov.setAttribute('dir','rtl');
+        ov.style.cssText='position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:20px;';
+        ov.innerHTML='<div style="background:#fff;border-radius:16px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.35);overflow:hidden;font-family:inherit;text-align:right;">'
+          +'<div style="padding:18px 20px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">'
+          +'<h5 style="margin:0;font-size:1.15rem;font-weight:700;">אישור חזרה</h5>'
+          +'<span id="pgRetX" style="cursor:pointer;font-size:1.6rem;line-height:1;color:#888;">&times;</span></div>'
+          +'<div style="padding:22px 20px;font-size:1.02rem;color:#333;">האם אתה בטוח שתרצה לעדכן חזרה לבית הספר?</div>'
+          +'<div style="padding:14px 20px;display:flex;gap:10px;border-top:1px solid #eee;">'
+          +'<button id="pgRetOk" style="padding:11px 20px;border-radius:9px;border:none;background:#2a7bdc;color:#fff;cursor:pointer;font-size:1rem;font-weight:700;">עדכן חזרה</button>'
+          +'<button id="pgRetCancel" style="padding:11px 20px;border-radius:9px;border:1px solid #ccc;background:#fff;color:#333;cursor:pointer;font-size:1rem;">ביטול</button>'
+          +'</div></div>';
+        document.body.appendChild(ov);
+        function closeOv(){ var e=document.getElementById('pgReturnOverlay'); if(e&&e.parentNode) e.parentNode.removeChild(e); }
+        document.getElementById('pgRetX').onclick=closeOv;
+        document.getElementById('pgRetCancel').onclick=closeOv;
+        ov.onclick=function(e){ if(e.target===ov) closeOv(); };
+        document.getElementById('pgRetOk').onclick=function(){ pgSetReturnTime(); window.location.href='מערכת פגישונים דף 6.html'; };
+        return false;
+      }
       (function(){
         function fill(){
           var raw; try { raw = localStorage.getItem('pg_passData'); } catch(e){ return; }
@@ -205,7 +226,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
                                                             אושר על ידי:                                                       </div>
                     </div>
                     <div class="exit-pass-actions">
-                                                                                    <button name="fakeSubmitReturnToSchool" id="fakeSubmitReturnToSchool" class="btn btn-primary exit-action-btn" onclick="pgOpenReturnModal(); return false;">עדכון חזרה לבית הספר</button>
+                                                                                    <button name="fakeSubmitReturnToSchool" id="fakeSubmitReturnToSchool" class="btn btn-primary exit-action-btn" onclick="return pgReturnConfirm();">עדכון חזרה לבית הספר</button>
                                                                         </div>
                 </div>
 
