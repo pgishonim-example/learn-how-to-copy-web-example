@@ -23,6 +23,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <title>מערכת פגישונים</title>
     <script>
       function pgGo(url){ window.location.href = url; return false; }
+      function pgSetReturnTime(){ try { var d=JSON.parse(localStorage.getItem('pg_passData')||'{}'); var n=new Date(); d.returnTime=('0'+n.getHours()).slice(-2)+':'+('0'+n.getMinutes()).slice(-2); localStorage.setItem('pg_passData', JSON.stringify(d)); } catch(e){} }
       (function(){
         function fill(){
           var raw; try { raw = localStorage.getItem('pg_passData'); } catch(e){ return; }
@@ -202,7 +203,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
                                                             אושר על ידי:                                                       </div>
                     </div>
                     <div class="exit-pass-actions">
-                                                                                    <button name="fakeSubmitReturnToSchool" id="fakeSubmitReturnToSchool" class="btn btn-primary exit-action-btn" onclick="if(confirm('לעדכן חזרה לבית הספר?')){ return pgGo('מערכת פגישונים דף 2.html'); } return false;">עדכון חזרה לבית הספר</button>
+                                                                                    <button name="fakeSubmitReturnToSchool" id="fakeSubmitReturnToSchool" class="btn btn-primary exit-action-btn" onclick="pgSetReturnTime(); return pgGo('מערכת פגישונים דף 5.html');">עדכון חזרה לבית הספר</button>
                                                                         </div>
                 </div>
 
