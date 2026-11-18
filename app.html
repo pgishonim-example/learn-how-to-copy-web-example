@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <script>if(!sessionStorage.getItem('pg_tos_ok')){location.replace('index.html');}</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>מערכת פגישונים</title>
+    <link rel="stylesheet" href="./מערכת פגישונים_files/general-pages.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/app.rtl.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/app-dark.rtl.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/app-custom.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/app-dark-custom.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/app-fonts-override.css">
+    <link rel="stylesheet" href="./מערכת פגישונים_files/certifications.css">
+    <link rel="icon" type="image/x-icon" href="https://pgishonim.com/M/assets/images/favicon.ico?v=1788903552">
+    <meta name="theme-color" content="#223e9c">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="פגישונים">
+    <style>
+        .start-body { padding: 20px; }
+        .qc { background:linear-gradient(135deg,#eef4ff,#f7faff); border:1px solid #d7e3f8; border-radius:16px; padding:16px; margin-bottom:12px; }
+        .qc h5 { margin:0 0 14px; }
+        .qc-row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+        .qc-field { flex:1 1 140px; min-width:120px; }
+        .qc-field.full { flex:1 1 100%; }
+        .qc-field label { font-weight:600; font-size:.9rem; display:block; margin-bottom:4px; }
+        #qTime { font-size:1.6rem; font-weight:800; text-align:center; letter-spacing:2px; color:#223e9c; }
+        #createBtn { width:100%; margin-top:6px; }
+    </style>
+</head>
+<body class="">
+<div class="exit-pass-page ext-page">
+    <div class="exit-pass-card">
+        <div class="exit-pass-header">
+            <div>
+                <h1 class="exit-pass-title">אישור יציאה</h1>
+                <div class="exit-pass-subtitle">מלאו את הפרטים ליצירת אישור</div>
+            </div>
+            <div class="exit-pass-brand">
+                <img src="./מערכת פגישונים_files/logo_pgishonim_full_white.png" alt="pgishonim">
+            </div>
+        </div>
+        <div class="exit-pass-body">
+            <div class="start-body">
+                <div class="qc">
+                    <h5>יצירת אישור יציאה</h5>
+                    <div class="qc-row">
+                        <div class="qc-field" style="min-width:150px;">
+                            <label for="qName">שם</label>
+                            <input type="text" id="qName" class="form-control" placeholder="שם התלמיד">
+                        </div>
+                        <div class="qc-field" style="max-width:120px;">
+                            <label for="qClass">כיתה</label>
+                            <input type="text" id="qClass" class="form-control" placeholder="כיתה">
+                        </div>
+                        <div class="qc-field" style="max-width:170px;">
+                            <label for="qDate">תאריך</label>
+                            <input type="date" id="qDate" class="form-control">
+                        </div>
+                        <div class="qc-field" style="max-width:120px;">
+                            <label for="qTime">שעה</label>
+                            <input type="text" id="qTime" class="form-control" inputmode="numeric" maxlength="5" placeholder="--:--">
+                        </div>
+                        <div class="qc-field full">
+                            <label for="qReason">סיבה</label>
+                            <input type="text" id="qReason" class="form-control" placeholder="סיבת היציאה">
+                        </div>
+                    </div>
+                    <div id="createErr" class="text-danger mt-2" style="display:none"></div>
+                    <button id="createBtn" class="btn btn-success btn-lg">צור אישור</button>
+                </div>
+                <div class="text-center" style="margin-top:10px;">
+                    <a href="guide.html" class="btn btn-sm btn-outline-secondary">← חזרה למדריך</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    if (!sessionStorage.getItem('pg_tos_ok')) { location.replace('index.html'); return; }
+    function two(n){ return ('0'+n).slice(-2); }
+    function nowHHMM(){ var d=new Date(); return two(d.getHours())+':'+two(d.getMinutes()); }
+    function todayISO(){ var d=new Date(); return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()); }
+
+    // pre-fill name + class from last time (saved on THIS phone only)
+    var last = {}; try { last = JSON.parse(localStorage.getItem('pg_last') || '{}') || {}; } catch (e) {}
+    document.getElementById('qName').value = last.name || '';
+    document.getElementById('qClass').value = last.klass || '';
+    document.getElementById('qDate').value = todayISO();
+    document.getElementById('qTime').value = nowHHMM();
+
+    // time field: numeric, auto-insert colon (type 1126 -> 11:26)
+    document.getElementById('qTime').addEventListener('input', function () {
+        var v = this.value.replace(/\D/g, '').slice(0, 4);
+        if (v.length >= 3) v = v.slice(0, 2) + ':' + v.slice(2);
+        this.value = v;
+    });
+
+    function create() {
+        var name = (document.getElementById('qName').value || '').trim();
+        var klass = (document.getElementById('qClass').value || '').trim();
+        var reason = (document.getElementById('qReason').value || '').trim();
+        var cErr = document.getElementById('createErr');
+        if (!name || !klass || !reason) {
+            cErr.textContent = 'יש למלא שם, כיתה וסיבה כדי ליצור אישור';
+            cErr.style.display = 'block';
+            return;
+        }
+        cErr.style.display = 'none';
+        var now = new Date();
+        var t = (document.getElementById('qTime').value || '').trim() || nowHHMM();
+        var dv = (document.getElementById('qDate').value || '').trim();
+        var dm = dv.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+        var dateDisp = dm ? (dm[3] + '/' + dm[2] + '/' + dm[1])
+                          : (two(now.getDate()) + '/' + two(now.getMonth() + 1) + '/' + now.getFullYear());
+
+        // remember name + class for next time (this phone only)
+        try { localStorage.setItem('pg_last', JSON.stringify({ name: name, klass: klass })); } catch (e) {}
+
+        // everything the pass screen needs — kept on the phone, sent nowhere
+        try {
+            localStorage.setItem('pg_passData', JSON.stringify({
+                student: name, klass: klass, date: dateDisp, time: t,
+                reason: reason, recurrence: 'חד פעמי'
+            }));
+        } catch (e) {}
+        window.location.href = 'מערכת פגישונים דף 2.html';
+    }
+
+    document.getElementById('createBtn').onclick = create;
+    document.getElementById('qReason').addEventListener('keydown', function (e) { if (e.key === 'Enter') create(); });
+})();
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+// quietly pre-download the next screen so it opens instantly
+window.addEventListener('load', function () {
+    try { var l = document.createElement('link'); l.rel = 'prefetch'; l.href = 'מערכת פגישונים דף 2.html'; document.head.appendChild(l); } catch (e) {}
+});
+</script>
+</body>
+</html>
