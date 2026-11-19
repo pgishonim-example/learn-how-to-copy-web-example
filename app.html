@@ -34,6 +34,18 @@
         body{ animation: pgEnter .3s ease both; }
         body.pg-leaving{ animation:none !important; opacity:0; transition:opacity .16s ease; }
         @media (prefers-reduced-motion: reduce){ body{ animation:none; } body.pg-leaving{ transition:none; } }
+        /* promise/declaration popup shown after pressing "צור אישור" */
+        #pledgeBackdrop{ position:fixed; inset:0; background:rgba(15,23,55,.55); backdrop-filter:blur(2px);
+            display:none; align-items:center; justify-content:center; padding:18px; z-index:9999; }
+        #pledgeBackdrop.show{ display:flex; animation:pgEnter .2s ease both; }
+        .pledge-box{ background:#fff; border-radius:18px; max-width:440px; width:100%; padding:22px 20px;
+            box-shadow:0 18px 50px rgba(15,23,55,.35); text-align:center; }
+        .pledge-box h3{ margin:0 0 10px; font-size:1.25rem; color:#223e9c; font-weight:800; }
+        .pledge-box p{ margin:0 0 14px; font-size:1rem; line-height:1.6; color:#2b3550; }
+        .pledge-box .pledge-note{ font-size:.9rem; color:#6b7280; margin-bottom:16px; }
+        .pledge-actions{ display:flex; gap:10px; flex-direction:column; }
+        .pledge-actions .btn{ width:100%; }
+        @media (max-width:360px){ .pledge-box h3{ font-size:1.1rem; } }
     </style>
     <script>
       // fade out before navigating to another page (smooth transition on every browser)
@@ -104,6 +116,19 @@
     </div>
 </div>
 
+<!-- declaration / promise popup (appears after pressing "צור אישור") -->
+<div id="pledgeBackdrop" role="dialog" aria-modal="true" aria-labelledby="pledgeTitle">
+    <div class="pledge-box">
+        <h3 id="pledgeTitle">⚠️ הצהרה לפני יצירת האישור</h3>
+        <p>אני מצהיר/ה ומתחייב/ת כי אני משתמש/ת במערכת <b>למטרות לימוד והדגמה בלבד</b>, וכי <b>לא אשתמש בה כדי לצאת מבית הספר</b> או לעזוב את שטחו.</p>
+        <p class="pledge-note">ידוע לי שהמערכת היא הדגמה חינוכית בלבד ואינה אישור יציאה אמיתי. שימוש לרעה עלול להוביל לחסימת הגישה.</p>
+        <div class="pledge-actions">
+            <button id="pledgeAgree" class="btn btn-success btn-lg">אני מאשר/ת ומתחייב/ת ✓</button>
+            <button id="pledgeCancel" class="btn btn-outline-secondary">ביטול</button>
+        </div>
+    </div>
+</div>
+
 <script>
 (function () {
     if (!sessionStorage.getItem('pg_tos_ok')) { location.replace('index.html'); return; }
@@ -136,6 +161,24 @@
             return;
         }
         cErr.style.display = 'none';
+        // show the declaration/promise popup — only continue if the user confirms
+        showPledge();
+    }
+
+    function showPledge(){
+        var bd = document.getElementById('pledgeBackdrop');
+        bd.classList.add('show');
+        document.getElementById('pledgeAgree').focus();
+    }
+    function hidePledge(){
+        document.getElementById('pledgeBackdrop').classList.remove('show');
+    }
+
+    function doCreate() {
+        hidePledge();
+        var name = (document.getElementById('qName').value || '').trim();
+        var klass = (document.getElementById('qClass').value || '').trim();
+        var reason = (document.getElementById('qReason').value || '').trim();
         var now = new Date();
         var t = (document.getElementById('qTime').value || '').trim() || nowHHMM();
         var dv = (document.getElementById('qDate').value || '').trim();
@@ -159,6 +202,10 @@
 
     document.getElementById('createBtn').onclick = create;
     document.getElementById('qReason').addEventListener('keydown', function (e) { if (e.key === 'Enter') create(); });
+    document.getElementById('pledgeAgree').onclick = doCreate;
+    document.getElementById('pledgeCancel').onclick = hidePledge;
+    document.getElementById('pledgeBackdrop').addEventListener('click', function(e){ if(e.target===this) hidePledge(); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') hidePledge(); });
 })();
 
 if ('serviceWorker' in navigator) {
