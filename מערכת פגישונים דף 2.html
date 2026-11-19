@@ -21,6 +21,38 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <link rel="apple-touch-icon" sizes="180x180" href="https://pgishonim.com/M/assets/images/apple-touch-icon.png?v=1788903552">
 
     <title>מערכת פגישונים</title>
+    <style id="pg-anim">
+      /* "stamp slam" feedback when the pass is locked / returned — plays in place, no page load */
+      @keyframes pgStampDrop{
+        0%{ transform:scale(1.9) rotate(-14deg); opacity:0; }
+        50%{ transform:scale(.86) rotate(4deg); opacity:1; }
+        72%{ transform:scale(1.07) rotate(-2deg); }
+        100%{ transform:scale(1) rotate(0); opacity:1; }
+      }
+      @keyframes pgStampRing{
+        0%{ transform:scale(.55); opacity:.6; }
+        100%{ transform:scale(1.55); opacity:0; }
+      }
+      .status-dock .approval-stamp.pg-stamp-play{
+        animation: pgStampDrop .72s cubic-bezier(.18,.9,.25,1) both;
+        position:relative; z-index:1;
+      }
+      .status-dock .approval-stamp.pg-stamp-play::after{
+        content:""; position:absolute; inset:-8px; border-radius:50%;
+        border:4px solid rgba(42,123,220,.5);
+        animation: pgStampRing .72s ease-out forwards; pointer-events:none; z-index:-1;
+      }
+      /* the status pill + action button ease in when the state flips */
+      @keyframes pgFlipIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
+      .status-dock.pg-flip .status-pill,
+      .status-dock.pg-flip .exit-pass-actions{ animation: pgFlipIn .45s ease both; }
+      @media (prefers-reduced-motion: reduce){
+        .status-dock .approval-stamp.pg-stamp-play{ animation-duration:.01ms; }
+        .status-dock .approval-stamp.pg-stamp-play::after{ display:none; }
+        .status-dock.pg-flip .status-pill,
+        .status-dock.pg-flip .exit-pass-actions{ animation:none; }
+      }
+    </style>
     <script>
       // 100% LOCAL, 100% INSTANT: exit + return happen in place on THIS screen — no page load, nothing sent anywhere.
       var PG_LOCK_IMG = './מערכת פגישונים דף 4_files/lock.webp';
@@ -43,14 +75,22 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         var img=document.querySelector('.status-dock .approval-stamp img'); if(img && cls!=='status-confirm'){ img.src=PG_LOCK_IMG; }
       }
       function pgSetAction(html){ var a=document.querySelector('.exit-pass-actions'); if(a){ a.innerHTML=html; } }
+      // Replay the "stamp slam" + flip-in animations in place (feels like a real app, no page load).
+      function pgPlayStamp(){
+        var dock=document.querySelector('.status-dock');
+        var s=document.querySelector('.status-dock .approval-stamp');
+        if(s){ s.classList.remove('pg-stamp-play'); void s.offsetWidth; s.classList.add('pg-stamp-play'); }
+        if(dock){ dock.classList.remove('pg-flip'); void dock.offsetWidth; dock.classList.add('pg-flip'); }
+      }
 
-      // Tap "נעל אישור" -> instantly show the "left school" state.
+      // Tap "נעל אישור" -> instantly show the "left school" state (with a stamp animation).
       function pgCommitExit(btn){
         if(btn){ btn.disabled=true; }
         if(typeof pgCloseExitModal==='function'){ pgCloseExitModal(); }
         var hh=pgNowHHMM();
         pgSave(function(d){ d.exitTime=hh; d.returnTime=''; });
         pgShowOut(hh, '--:--');
+        pgPlayStamp();
       }
       function pgShowOut(exitTime, returnTime){
         pgSetTile('שעת יציאה', exitTime);
@@ -63,6 +103,7 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         var hh=pgNowHHMM();
         pgSave(function(d){ d.returnTime=hh; });
         pgShowBack(hh);
+        pgPlayStamp();
       }
       function pgShowBack(returnTime){
         pgSetTile('שעת חזרה', returnTime);
