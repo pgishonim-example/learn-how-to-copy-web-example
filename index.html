@@ -58,6 +58,11 @@
             box-shadow:0 10px 24px rgba(24,167,108,.32);
         }
         .btn:disabled{ background:#c3cad8; box-shadow:none; cursor:not-allowed; }
+        /* smooth fade between pages */
+        @keyframes pgEnter{ from{ opacity:0; } to{ opacity:1; } }
+        body{ animation: pgEnter .3s ease both; }
+        body.pg-leaving{ animation:none !important; opacity:0; transition:opacity .16s ease; }
+        @media (prefers-reduced-motion: reduce){ body{ animation:none; } body.pg-leaving{ transition:none; } }
     </style>
 </head>
 <body>
@@ -175,7 +180,8 @@
     btn.addEventListener('click', function () {
         if (btn.disabled) return;
         try { sessionStorage.setItem('pg_tos_ok', '1'); } catch (e) {}
-        window.location.href = 'guide.html';
+        document.body.classList.add('pg-leaving');
+        setTimeout(function(){ window.location.href = 'guide.html'; }, 165);
     });
 })();
 

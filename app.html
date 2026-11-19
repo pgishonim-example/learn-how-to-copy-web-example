@@ -29,7 +29,30 @@
         .qc-field label { font-weight:600; font-size:.9rem; display:block; margin-bottom:4px; }
         #qTime { font-size:1.6rem; font-weight:800; text-align:center; letter-spacing:2px; color:#223e9c; }
         #createBtn { width:100%; margin-top:6px; }
+        /* smooth fade between pages */
+        @keyframes pgEnter{ from{ opacity:0; } to{ opacity:1; } }
+        body{ animation: pgEnter .3s ease both; }
+        body.pg-leaving{ animation:none !important; opacity:0; transition:opacity .16s ease; }
+        @media (prefers-reduced-motion: reduce){ body{ animation:none; } body.pg-leaving{ transition:none; } }
     </style>
+    <script>
+      // fade out before navigating to another page (smooth transition on every browser)
+      (function(){
+        var leaving=false;
+        document.addEventListener('click', function(e){
+          if(e.defaultPrevented || e.button!==0 || e.metaKey||e.ctrlKey||e.shiftKey||e.altKey) return;
+          var a = e.target.closest ? e.target.closest('a[href]') : null;
+          if(!a || a.target==='_blank' || a.hasAttribute('download')) return;
+          var href=a.getAttribute('href');
+          if(!href || href.charAt(0)==='#' || /^(mailto:|tel:|javascript:)/i.test(href)) return;
+          var url; try{ url=new URL(href, location.href); }catch(_){ return; }
+          if(url.origin!==location.origin) return;
+          e.preventDefault(); if(leaving) return; leaving=true;
+          document.body.classList.add('pg-leaving');
+          setTimeout(function(){ location.href=url.href; }, 165);
+        }, false);
+      })();
+    </script>
 </head>
 <body class="">
 <div class="exit-pass-page ext-page">
@@ -130,7 +153,8 @@
                 reason: reason, recurrence: 'חד פעמי'
             }));
         } catch (e) {}
-        window.location.href = 'מערכת פגישונים דף 2.html';
+        document.body.classList.add('pg-leaving');
+        setTimeout(function(){ window.location.href = 'מערכת פגישונים דף 2.html'; }, 165);
     }
 
     document.getElementById('createBtn').onclick = create;
