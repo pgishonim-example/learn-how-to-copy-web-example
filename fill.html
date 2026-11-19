@@ -1,16 +1,16 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>מערכת פגישונים</title>
-    <link rel="stylesheet" href="./מערכת פגישונים_files/general-pages.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/app.rtl.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/app-dark.rtl.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/app-custom.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/app-dark-custom.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/app-fonts-override.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/certifications.css">
+    <link rel="stylesheet" href="./pg_files/general-pages.css">
+    <link rel="stylesheet" href="./pg_files/app.rtl.css">
+    <link rel="stylesheet" href="./pg_files/app-dark.rtl.css">
+    <link rel="stylesheet" href="./pg_files/app-custom.css">
+    <link rel="stylesheet" href="./pg_files/app-dark-custom.css">
+    <link rel="stylesheet" href="./pg_files/app-fonts-override.css">
+    <link rel="stylesheet" href="./pg_files/certifications.css">
     <link rel="icon" type="image/x-icon" href="https://pgishonim.com/M/assets/images/favicon.ico?v=1788903552">
     <meta name="theme-color" content="#223e9c">
     <link rel="manifest" href="manifest.json">
@@ -43,7 +43,7 @@
                 <div class="exit-pass-subtitle">מילוי פרטי התלמיד והאישור</div>
             </div>
             <div class="exit-pass-brand">
-                <img src="./מערכת פגישונים_files/logo_pgishonim_full_white.png" alt="pgishonim">
+                <img src="./pg_files/logo_pgishonim_full_white.png" alt="pgishonim">
             </div>
         </div>
         <div class="exit-pass-body">
@@ -131,7 +131,7 @@
                 taz: prev.taz || ''
             };
             try { localStorage.setItem('pg_passData', JSON.stringify(data)); } catch(err){}
-            pgGo('מערכת פגישונים דף 2.html');
+            pgGo('page2.html');
         });
     })();
 </script>

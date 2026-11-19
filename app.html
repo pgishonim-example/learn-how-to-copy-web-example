@@ -5,13 +5,13 @@
     <script>if(!sessionStorage.getItem('pg_tos_ok')){location.replace('index.html');}</script>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>מערכת פגישונים</title>
-    <link rel="stylesheet" href="./מערכת פגישונים_files/general-pages.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/app.rtl.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/app-dark.rtl.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/app-custom.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/app-dark-custom.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/app-fonts-override.css">
-    <link rel="stylesheet" href="./מערכת פגישונים_files/certifications.css">
+    <link rel="stylesheet" href="./pg_files/general-pages.css">
+    <link rel="stylesheet" href="./pg_files/app.rtl.css">
+    <link rel="stylesheet" href="./pg_files/app-dark.rtl.css">
+    <link rel="stylesheet" href="./pg_files/app-custom.css">
+    <link rel="stylesheet" href="./pg_files/app-dark-custom.css">
+    <link rel="stylesheet" href="./pg_files/app-fonts-override.css">
+    <link rel="stylesheet" href="./pg_files/certifications.css">
     <link rel="icon" type="image/x-icon" href="https://pgishonim.com/M/assets/images/favicon.ico?v=1788903552">
     <meta name="theme-color" content="#223e9c">
     <link rel="manifest" href="manifest.json">
@@ -63,7 +63,7 @@
                 <div class="exit-pass-subtitle">מלאו את הפרטים ליצירת אישור</div>
             </div>
             <div class="exit-pass-brand">
-                <img src="./מערכת פגישונים_files/logo_pgishonim_full_white.png" alt="pgishonim">
+                <img src="./pg_files/logo_pgishonim_full_white.png" alt="pgishonim">
             </div>
         </div>
         <div class="exit-pass-body">
@@ -154,7 +154,7 @@
             }));
         } catch (e) {}
         document.body.classList.add('pg-leaving');
-        setTimeout(function(){ window.location.href = 'מערכת פגישונים דף 2.html'; }, 165);
+        setTimeout(function(){ window.location.href = 'page2.html'; }, 165);
     }
 
     document.getElementById('createBtn').onclick = create;
@@ -166,7 +166,7 @@ if ('serviceWorker' in navigator) {
 }
 // quietly pre-download the next screen so it opens instantly
 window.addEventListener('load', function () {
-    try { var l = document.createElement('link'); l.rel = 'prefetch'; l.href = 'מערכת פגישונים דף 2.html'; document.head.appendChild(l); } catch (e) {}
+    try { var l = document.createElement('link'); l.rel = 'prefetch'; l.href = 'page2.html'; document.head.appendChild(l); } catch (e) {}
 });
 </script>
 </body>
