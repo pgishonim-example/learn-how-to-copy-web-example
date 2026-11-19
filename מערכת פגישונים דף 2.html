@@ -24,23 +24,22 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
     <style id="pg-anim">
       /* "stamp slam" feedback when the pass is locked / returned — plays in place, no page load */
       @keyframes pgStampDrop{
-        0%{ transform:scale(1.9) rotate(-14deg); opacity:0; }
-        50%{ transform:scale(.86) rotate(4deg); opacity:1; }
-        72%{ transform:scale(1.07) rotate(-2deg); }
-        100%{ transform:scale(1) rotate(0); opacity:1; }
+        0%{ transform:scale(1.18); opacity:.4; }
+        55%{ transform:scale(.97); opacity:1; }
+        100%{ transform:scale(1); opacity:1; }
       }
       @keyframes pgStampRing{
-        0%{ transform:scale(.55); opacity:.6; }
-        100%{ transform:scale(1.55); opacity:0; }
+        0%{ transform:scale(.6); opacity:.55; }
+        100%{ transform:scale(1.5); opacity:0; }
       }
       .status-dock .approval-stamp.pg-stamp-play{
-        animation: pgStampDrop .72s cubic-bezier(.18,.9,.25,1) both;
+        animation: pgStampDrop .5s cubic-bezier(.18,.9,.25,1) both;
         position:relative; z-index:1;
       }
       .status-dock .approval-stamp.pg-stamp-play::after{
         content:""; position:absolute; inset:-8px; border-radius:50%;
         border:4px solid rgba(42,123,220,.5);
-        animation: pgStampRing .72s ease-out forwards; pointer-events:none; z-index:-1;
+        animation: pgStampRing .6s ease-out forwards; pointer-events:none; z-index:-1;
       }
       /* the status pill + action button ease in when the state flips */
       @keyframes pgFlipIn{ from{ opacity:0; transform:translateY(6px); } to{ opacity:1; transform:translateY(0); } }
@@ -72,7 +71,11 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
       function pgSetStatus(cls, icon, text){
         var dock=document.querySelector('.status-dock'); if(dock){ dock.classList.remove('status-confirm','status-out','status-back'); dock.classList.add(cls); }
         var pill=document.querySelector('.status-dock .status-pill'); if(pill){ pill.className='status-pill '+cls; pill.innerHTML='<i class="bi '+icon+'" aria-hidden="true"></i> '+text; }
-        var img=document.querySelector('.status-dock .approval-stamp img'); if(img && cls!=='status-confirm'){ img.src=PG_LOCK_IMG; }
+        var img=document.querySelector('.status-dock .approval-stamp img');
+        if(img && cls!=='status-confirm'){
+          img.classList.remove('breath-effect');       // the real locked stamp doesn't "breathe"
+          img.src = PG_LOCK_IMG + '?t=' + Date.now();   // force the animated lock.webp to replay from the start, exactly like the real page
+        }
       }
       function pgSetAction(html){ var a=document.querySelector('.exit-pass-actions'); if(a){ a.innerHTML=html; } }
       // Replay the "stamp slam" + flip-in animations in place (feels like a real app, no page load).
