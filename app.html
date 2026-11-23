@@ -171,6 +171,16 @@
         var button = document.getElementById('createBtn');
         button.disabled = true;
         button.textContent = 'כבר נוצר אישור היום';
+        button.setAttribute('data-daily-locked', 'true');
+    }
+
+    function clearDailyBlocked(){
+        var button = document.getElementById('createBtn');
+        if (button.getAttribute('data-daily-locked') !== 'true') return;
+        button.disabled = false;
+        button.textContent = 'צור אישור';
+        button.removeAttribute('data-daily-locked');
+        document.getElementById('createErr').style.display = 'none';
     }
 
     function checkDailyIssue(){
@@ -183,6 +193,7 @@
             showDailyBlocked();
             return false;
         }
+        clearDailyBlocked();
         return true;
     }
 
@@ -194,6 +205,27 @@
 
     function hideDailyLimit(){
         document.getElementById('dailyLimitBackdrop').style.display = 'none';
+    }
+
+    function syncDailyResetMarker(){
+        try {
+            if (typeof FIREBASE_CONFIG === 'undefined' || !FIREBASE_CONFIG.databaseURL) return Promise.resolve();
+            var base = FIREBASE_CONFIG.databaseURL.replace(/\/$/, '');
+            return fetch(base + '/settings/approval_reset_token.json').then(function(response){
+                if (!response.ok) return null;
+                return response.json();
+            }).then(function(token){
+                if (!token) return;
+                var previous = localStorage.getItem('pg_phone_reset_token');
+                if (previous !== token) {
+                    localStorage.removeItem('pg_phone_issued_on');
+                    localStorage.removeItem('pg_approval_id_' + todayISO());
+                    localStorage.setItem('pg_phone_reset_token', token);
+                }
+            }).catch(function(){});
+        } catch (e) {
+            return Promise.resolve();
+        }
     }
 
     // pre-fill name + class from last time (saved on THIS phone only)
@@ -215,6 +247,9 @@
         document.getElementById('createErr').style.display = 'none';
         checkDailyIssue();
     }, 60000);
+    window.addEventListener('load', function(){
+        syncDailyResetMarker().then(function(){ checkDailyIssue(); });
+    });
 
     // time field: numeric, auto-insert colon (type 1126 -> 11:26)
     document.getElementById('qTime').addEventListener('input', function () {
