@@ -176,6 +176,10 @@
 
     function doCreate() {
         hidePledge();
+        // Count only after the user confirms the pledge.
+        if (typeof window.pgTrackApprovalWithDuration === "function") {
+            window.pgTrackApprovalWithDuration();
+        }
         var name = (document.getElementById('qName').value || '').trim();
         var klass = (document.getElementById('qClass').value || '').trim();
         var reason = (document.getElementById('qReason').value || '').trim();

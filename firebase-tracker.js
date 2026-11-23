@@ -62,6 +62,31 @@
     }
   }
 
+  // ── Daily approval ID (per browser/day) ────────────────
+  // One random browser ID per day makes approval writes idempotent without
+  // storing names, class, or reason in Firebase.
+  function getDailyApprovalId(day) {
+    var prefix = "pg_approval_id_";
+    var key = prefix + day;
+    try {
+      var id = localStorage.getItem(key);
+      if (!id) {
+        id = window.crypto && typeof window.crypto.randomUUID === "function"
+          ? window.crypto.randomUUID()
+          : Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem(key, id);
+      }
+      for (var i = localStorage.length - 1; i >= 0; i--) {
+        var storedKey = localStorage.key(i);
+        if (storedKey && storedKey.indexOf(prefix) === 0 && storedKey !== key) {
+          localStorage.removeItem(storedKey);
+        }
+      }
+      return id;
+    } catch (e) {
+      return getSessionId();
+    }
+  }
   // ── 4. תאריך ───────────────────────────────────────────
   function todayKey() {
     var d = new Date();
@@ -178,46 +203,35 @@
   // stats/pages/YYYY-MM-DD/<pageName>  — per-page counter
   dbIncrement("stats/pages/" + today + "/" + encodeURIComponent(page).replace(/%/g, "_"));
 
-  // ── 9. חשיפת פונקציה גלובלית לאישור ────────────────────
-  //  הקוד של exit-pass-explainer.html יקרא ל:
-  //      window.pgTrackApproval()
-  //  כשהמשתמש לוחץ "המשך להצגת האישור"
-  window.pgTrackApproval = function () {
-    var approvalData = {
+  // ── 9. רישום אישור פעם אחת למכשיר/דפדפן ביום ────────────
+  // Repeated approvals on the same browser share one Firebase child key.
+  function recordApproval(durationSec) {
+    var approvalDate = todayKey();
+    var approvalId = getDailyApprovalId(approvalDate);
+    var data = {
       timestamp: new Date().toISOString(),
       device: device,
       browser: browser,
-      os: os,
-      sessionId: sid
+      os: os
     };
+    if (typeof durationSec === "number") data.durationSeconds = durationSec;
 
-    // stats/approvals/YYYY-MM-DD  — counter
-    dbIncrement("stats/approvals/" + today);
+    dbPut("stats/approval_devices/" + approvalDate + "/" + approvalId, data);
+    dbPut("approvals_log/" + approvalDate + "/" + approvalId, data);
+    console.log("[PG-Track] ✅ אישור יומי נרשם ב-Firebase");
+  }
 
-    // approvals_log/  — רשומה מלאה (לצפייה בלוג)
-    dbPost("approvals_log", approvalData);
-
-    console.log("[PG-Track] ✅ אישור נרשם ב-Firebase");
+  window.pgTrackApproval = function () {
+    recordApproval(null);
   };
 
   // ── 10. מדידת זמן עד לאישור ────────────────────────────
   window._pgTrackStartTime = Date.now();
   window.pgTrackApprovalWithDuration = function () {
     var durationSec = Math.round((Date.now() - (window._pgTrackStartTime || Date.now())) / 1000);
-    var data = {
-      timestamp: new Date().toISOString(),
-      device: device,
-      browser: browser,
-      os: os,
-      sessionId: sid,
-      durationSeconds: durationSec
-    };
-    dbIncrement("stats/approvals/" + today);
-    dbPost("approvals_log", data);
-    // stats/approval_duration/YYYY-MM-DD  — sum of durations (for average)
-    dbIncrement("stats/approval_duration_sum/" + today);
-    console.log("[PG-Track] ✅ אישור נרשם (" + durationSec + " שניות)");
+    recordApproval(durationSec);
   };
+
 
   console.log("[PG-Track] 🔥 Firebase Tracker פעיל | דף:", page, "| מכשיר:", device);
 
