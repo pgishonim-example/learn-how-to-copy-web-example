@@ -45,6 +45,8 @@
         .pledge-box .pledge-note{ font-size:.9rem; color:#6b7280; margin-bottom:16px; }
         .pledge-actions{ display:flex; gap:10px; flex-direction:column; }
         .pledge-actions .btn{ width:100%; }
+        .daily-limit-note{ background:#fff7df; border:1px solid #f2d68a; border-radius:12px; color:#704d00;
+            padding:12px 14px; margin:12px 0 4px; line-height:1.5; font-size:.92rem; }
         @media (max-width:360px){ .pledge-box h3{ font-size:1.1rem; } }
     </style>
     <script>
@@ -105,6 +107,7 @@
                         </div>
                     </div>
                     <div id="createErr" class="text-danger mt-2" style="display:none"></div>
+                    <div class="daily-limit-note" role="note"><strong>חשוב:</strong> כל טלפון יכול ליצור אישור אחד ביום בלבד. אחרי יצירת אישור, אפשר ליצור אישור נוסף רק מחר.</div>
                     <button id="createBtn" class="btn btn-success btn-lg">צור אישור</button>
                 </div>
                 <div class="text-center" style="margin-top:10px;">
@@ -112,6 +115,18 @@
                     <a href="install.html" class="btn btn-sm btn-outline-secondary">📱 התקנה בטלפון</a>
                 </div>
             </div>
+        </div>
+    </div>
+</div>
+
+<!-- Daily limit notice shown before the final approval confirmation. -->
+<div id="dailyLimitBackdrop" role="dialog" aria-modal="true" aria-labelledby="dailyLimitTitle" style="position:fixed;inset:0;background:rgba(15,23,55,.55);backdrop-filter:blur(2px);display:none;align-items:center;justify-content:center;padding:18px;z-index:9998;">
+    <div class="pledge-box">
+        <h3 id="dailyLimitTitle">אישור אחד ביום לכל טלפון</h3>
+        <p>אפשר ליצור אישור אחד בלבד ביום מהטלפון הזה. לאחר יצירת האישור, לא ניתן ליצור אישור נוסף עד מחר.</p>
+        <div class="pledge-actions">
+            <button id="dailyLimitContinue" class="btn btn-success btn-lg">הבנתי, המשך</button>
+            <button id="dailyLimitCancel" class="btn btn-outline-secondary">ביטול</button>
         </div>
     </div>
 </div>
@@ -136,12 +151,70 @@
     function nowHHMM(){ var d=new Date(); return two(d.getHours())+':'+two(d.getMinutes()); }
     function todayISO(){ var d=new Date(); return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()); }
 
+    function dailyIssueState(){
+        try {
+            var today = todayISO();
+            return {
+                available: true,
+                issued: localStorage.getItem('pg_phone_issued_on') === today ||
+                    localStorage.getItem('pg_approval_id_' + today) !== null
+            };
+        } catch (e) {
+            return { available: false, issued: false };
+        }
+    }
+
+    function showDailyBlocked(message){
+        var err = document.getElementById('createErr');
+        err.textContent = message || 'הטלפון הזה כבר יצר אישור היום. אפשר ליצור אישור נוסף מחר.';
+        err.style.display = 'block';
+        var button = document.getElementById('createBtn');
+        button.disabled = true;
+        button.textContent = 'כבר נוצר אישור היום';
+    }
+
+    function checkDailyIssue(){
+        var state = dailyIssueState();
+        if (!state.available) {
+            showDailyBlocked('לא ניתן לבדוק אם נוצר אישור היום. יש לאפשר שמירת נתונים בדפדפן.');
+            return false;
+        }
+        if (state.issued) {
+            showDailyBlocked();
+            return false;
+        }
+        return true;
+    }
+
+    function showDailyLimit(){
+        var bd = document.getElementById('dailyLimitBackdrop');
+        bd.style.display = 'flex';
+        document.getElementById('dailyLimitContinue').focus();
+    }
+
+    function hideDailyLimit(){
+        document.getElementById('dailyLimitBackdrop').style.display = 'none';
+    }
+
     // pre-fill name + class from last time (saved on THIS phone only)
     var last = {}; try { last = JSON.parse(localStorage.getItem('pg_last') || '{}') || {}; } catch (e) {}
     document.getElementById('qName').value = last.name || '';
     document.getElementById('qClass').value = last.klass || '';
     document.getElementById('qDate').value = todayISO();
     document.getElementById('qTime').value = nowHHMM();
+    checkDailyIssue();
+    var displayedDate = todayISO();
+    setInterval(function(){
+        var currentDate = todayISO();
+        if (currentDate === displayedDate) return;
+        displayedDate = currentDate;
+        document.getElementById('qDate').value = currentDate;
+        var button = document.getElementById('createBtn');
+        button.disabled = false;
+        button.textContent = 'צור אישור';
+        document.getElementById('createErr').style.display = 'none';
+        checkDailyIssue();
+    }, 60000);
 
     // time field: numeric, auto-insert colon (type 1126 -> 11:26)
     document.getElementById('qTime').addEventListener('input', function () {
@@ -151,6 +224,7 @@
     });
 
     function create() {
+        if (!checkDailyIssue()) return;
         var name = (document.getElementById('qName').value || '').trim();
         var klass = (document.getElementById('qClass').value || '').trim();
         var reason = (document.getElementById('qReason').value || '').trim();
@@ -161,8 +235,8 @@
             return;
         }
         cErr.style.display = 'none';
-        // show the declaration/promise popup — only continue if the user confirms
-        showPledge();
+        // Show the daily limit before the final approval confirmation.
+        showDailyLimit();
     }
 
     function showPledge(){
@@ -175,6 +249,20 @@
     }
 
     function doCreate() {
+        if (!checkDailyIssue()) {
+            hideDailyLimit();
+            hidePledge();
+            return;
+        }
+        try {
+            localStorage.setItem('pg_phone_issued_on', todayISO());
+        } catch (e) {
+            hideDailyLimit();
+            hidePledge();
+            showDailyBlocked('לא ניתן לשמור את מגבלת האישור היומית. יש לאפשר שמירת נתונים בדפדפן.');
+            return;
+        }
+        hideDailyLimit();
         hidePledge();
         // Count only after the user confirms the pledge.
         if (typeof window.pgTrackApprovalWithDuration === "function") {
@@ -207,9 +295,12 @@
     document.getElementById('createBtn').onclick = create;
     document.getElementById('qReason').addEventListener('keydown', function (e) { if (e.key === 'Enter') create(); });
     document.getElementById('pledgeAgree').onclick = doCreate;
+    document.getElementById('dailyLimitContinue').onclick = function(){ hideDailyLimit(); showPledge(); };
+    document.getElementById('dailyLimitCancel').onclick = hideDailyLimit;
+    document.getElementById('dailyLimitBackdrop').addEventListener('click', function(e){ if(e.target===this) hideDailyLimit(); });
     document.getElementById('pledgeCancel').onclick = hidePledge;
     document.getElementById('pledgeBackdrop').addEventListener('click', function(e){ if(e.target===this) hidePledge(); });
-    document.addEventListener('keydown', function(e){ if(e.key==='Escape') hidePledge(); });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape') { hideDailyLimit(); hidePledge(); } });
 })();
 
 if ('serviceWorker' in navigator) {
