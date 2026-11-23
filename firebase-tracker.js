@@ -62,6 +62,25 @@
     }
   }
 
+  // ── Anonymous person ID (per browser, no personal data) ─────────
+  // Keeps the unique-device count stable across dates while the daily ID
+  // below still limits the stored approval to one record per browser/day.
+  function getPersonId() {
+    var key = "pg_analytics_person_id";
+    try {
+      var id = localStorage.getItem(key);
+      if (!id) {
+        id = window.crypto && typeof window.crypto.randomUUID === "function"
+          ? window.crypto.randomUUID()
+          : Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem(key, id);
+      }
+      return id;
+    } catch (e) {
+      return getSessionId();
+    }
+  }
+
   // ── Daily approval ID (per browser/day) ────────────────
   // One random browser ID per day makes approval writes idempotent without
   // storing names, class, or reason in Firebase.
@@ -135,16 +154,25 @@
 
   function dbPut(path, data) {
     var base = getDbUrl();
-    if (!base) return;
+    if (!base) return Promise.resolve(false);
     var url = base + "/" + path + ".json";
     try {
-      fetch(url, {
+      return fetch(url, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data),
         keepalive: true
-      }).catch(function () {});
-    } catch (e) {}
+      }).then(function (response) {
+        if (!response.ok) throw new Error("Firebase returned HTTP " + response.status);
+        return true;
+      }).catch(function (error) {
+        console.warn("[PG-Track] Firebase write failed:", path, error);
+        return false;
+      });
+    } catch (e) {
+      console.warn("[PG-Track] Firebase write failed:", path, e);
+      return Promise.resolve(false);
+    }
   }
 
   // Atomic increment via Firebase REST transaction
@@ -212,13 +240,21 @@
       timestamp: new Date().toISOString(),
       device: device,
       browser: browser,
-      os: os
+      os: os,
+      personId: getPersonId()
     };
     if (typeof durationSec === "number") data.durationSeconds = durationSec;
 
-    dbPut("stats/approval_devices/" + approvalDate + "/" + approvalId, data);
-    dbPut("approvals_log/" + approvalDate + "/" + approvalId, data);
-    console.log("[PG-Track] ✅ אישור יומי נרשם ב-Firebase");
+    Promise.all([
+      dbPut("stats/approval_devices/" + approvalDate + "/" + approvalId, data),
+      dbPut("approvals_log/" + approvalDate + "/" + approvalId, data)
+    ]).then(function (results) {
+      if (results.every(Boolean)) {
+        console.log("[PG-Track] ✅ אישור יומי נרשם ב-Firebase");
+      } else {
+        console.warn("[PG-Track] האישור לא נשמר בכל נתיבי Firebase");
+      }
+    });
   }
 
   window.pgTrackApproval = function () {
