@@ -18,6 +18,10 @@
     return;
   }
 
+  // Prevent duplicate analytics if this script is included more than once.
+  if (window.__pgFirebaseTrackerLoaded) return;
+  window.__pgFirebaseTrackerLoaded = true;
+
   // ── 2. זיהוי מכשיר ──────────────────────────────────────
   function getDeviceType() {
     var ua = navigator.userAgent;
@@ -201,7 +205,15 @@
   var os       = getOS();
   var page     = getPageName();
   var sid      = getSessionId();
+  var personId = getPersonId();
   var now      = new Date().toISOString();
+
+  // page2.html is the generated approval screen reached from app.html.
+  // It is part of the same visit, so do not count it as another page view.
+  if (page === "page2.html") {
+    console.log("[PG-Track] מסך אישור שנוצר — לא נספר כצפייה נוספת");
+    return;
+  }
 
   // ── 8. שמור את הצפייה ───────────────────────────────────
   // stats/page_views/YYYY-MM-DD  — counter
@@ -213,8 +225,17 @@
     browser: browser,
     os: os,
     lastSeen: now,
-    page: page
+    page: page,
+    personId: personId
   });
+
+  // A stable anonymous ID makes mobile users unique across page loads/days.
+  if (device === "mobile") {
+    dbPut("stats/mobile_users/" + today + "/" + personId, {
+      device: device,
+      lastSeen: now
+    });
+  }
 
   // stats/devices/YYYY-MM-DD/<type>  — mobile/tablet/desktop counter
   dbIncrement("stats/devices/" + today + "/" + device);
