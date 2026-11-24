@@ -68,6 +68,9 @@
     var msg  = document.getElementById("msg");
     var btn  = document.getElementById("loginBtn");
     var routed = false;
+    // If the user just logged out, don't silently sign them back in from the saved session.
+    var forceLogout = false;
+    try { forceLogout = localStorage.getItem("pg_logout") === "1"; if (forceLogout) { localStorage.removeItem("pg_logout"); } } catch (e) {}
 
     function reset() { routed = false; btn.disabled = false; btn.textContent = "כניסה"; }
 
@@ -110,12 +113,13 @@
             function enter() {
                 try {
                     sessionStorage.setItem("pg_auth_ok", "1");
+                    sessionStorage.setItem("pg_tos_ok", "1"); // Terms page removed — skip straight into the app
                     try { sessionStorage.removeItem("pg_admin"); } catch (e) {}
                     sessionStorage.setItem("pg_name", acc.name || "");
                     sessionStorage.setItem("pg_max", String(acc.maxExits == null ? 0 : acc.maxExits));
                     sessionStorage.setItem("pg_used", String(acc.exitsUsed || 0));
                 } catch (e) {}
-                window.location.replace("index.html");
+                window.location.replace("guide.html");
             }
             if (!bound) {
                 window.PG_FIREBASE.database.ref("accounts/" + uid + "/deviceId").set(myDev).then(enter).catch(enter);
@@ -135,8 +139,13 @@
         return;
     }
 
-    // Already signed in on this device → route automatically.
+    // Already signed in on this device → route automatically (unless the user just logged out).
     window.PG_FIREBASE.auth.onAuthStateChanged(function (user) {
+        if (forceLogout) {
+            if (user) { try { window.PG_FIREBASE.auth.signOut(); } catch (e) {} }
+            forceLogout = false; // only suppress the first auto-route after logout
+            return;
+        }
         if (user && !routed) { route(user); }
     });
 
