@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>תקנון ותנאי שימוש · מערכת פגישונים</title>
+    <link rel="icon" type="image/x-icon" href="https://pgishonim.com/M/assets/images/favicon.ico?v=1788903552">
+    <meta name="theme-color" content="#223e9c">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="פגישונים">
+    <style>
+        :root{ --blue:#223e9c; --ink:#1b2336; --muted:#5a6b8c; --line:#e2e8f4; }
+        *{ box-sizing:border-box; }
+        html,body{ height:100%; overflow-x:hidden; }
+        body{
+            margin:0; background:linear-gradient(180deg,#223e9c,#17295f);
+            font-family:'Rubik','Segoe UI',Arial,sans-serif; color:#1b2336;
+            display:flex; align-items:center; justify-content:center; padding:16px;
+            -webkit-text-size-adjust:100%;
+        }
+        .card{
+            background:#fff; width:100%; max-width:720px; max-height:94vh;
+            border-radius:22px; box-shadow:0 24px 70px rgba(0,0,0,.45);
+            display:flex; flex-direction:column; overflow:hidden;
+        }
+        .top{ background:linear-gradient(135deg,#223e9c,#3457c9); color:#fff; padding:20px 22px; }
+        .top h1{ margin:0 0 4px; font-size:1.42rem; font-weight:800; }
+        .top p{ margin:0; opacity:.9; font-size:.95rem; }
+        .edu{
+            display:inline-flex; gap:7px; align-items:center; margin-top:12px;
+            background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.35);
+            padding:6px 12px; border-radius:999px; font-size:.84rem; font-weight:600;
+        }
+        .terms{
+            flex:1 1 auto; min-height:0;
+            padding:18px 22px; overflow-y:auto; line-height:1.7; font-size:.96rem; color:#2a3550;
+            -webkit-overflow-scrolling:touch;
+        }
+        .terms h2{ font-size:1.05rem; color:var(--blue); margin:18px 0 6px; font-weight:800; }
+        .terms h2:first-of-type{ margin-top:4px; }
+        .terms p{ margin:6px 0; }
+        .terms ul{ margin:6px 0; padding-inline-start:20px; }
+        .terms li{ margin:4px 0; }
+        .terms .lead{ background:#f3f6fd; border:1px solid var(--line); border-radius:12px; padding:12px 14px; font-weight:600; color:#1b2336; }
+        .terms .end{ text-align:center; color:#8a93a6; font-size:.85rem; margin:18px 0 4px; }
+        .foot{ border-top:1px solid var(--line); padding:14px 22px 18px; background:#fafbfe; }
+        .hint{ font-size:.85rem; color:#b5660f; margin-bottom:10px; text-align:center; font-weight:600; }
+        .hint.ready{ color:#0f7a55; }
+        .agree{ display:flex; align-items:flex-start; gap:10px; margin-bottom:12px; font-size:.95rem; }
+        .agree input{ width:20px; height:20px; margin-top:2px; flex:0 0 auto; }
+        .agree label{ font-weight:600; }
+        .btn{
+            width:100%; border:none; border-radius:13px; padding:15px; font-size:1.08rem;
+            font-weight:800; color:#fff; background:#18a76c; cursor:pointer;
+            box-shadow:0 10px 24px rgba(24,167,108,.32);
+        }
+        .btn:disabled{ background:#c3cad8; box-shadow:none; cursor:not-allowed; }
+        /* smooth fade between pages */
+        @keyframes pgEnter{ from{ opacity:0; } to{ opacity:1; } }
+        body{ animation: pgEnter .3s ease both; }
+        body.pg-leaving{ animation:none !important; opacity:0; transition:opacity .16s ease; }
+        @media (prefers-reduced-motion: reduce){ body{ animation:none; } body.pg-leaving{ transition:none; } }
+    </style>
+</head>
+<body>
+<div class="card">
+    <div class="top">
+        <h1>תקנון ותנאי שימוש</h1>
+        <p>יש לקרוא את התקנון במלואו לפני השימוש. התקנון מוצג בכל כניסה.</p>
+        <span class="edu">🎓 כלי להמחשה ולימוד בלבד</span>
+    </div>
+
+    <div class="terms" id="terms">
+        <p class="lead">השימוש במערכת זו הוא על דעתכם, מרצונכם החופשי ובאחריותכם המלאה, הבלעדית והמוחלטת בלבד. מערכת זו היא פרויקט להמחשה וללימוד בלבד. אינכם חייבים ואינכם נדרשים להשתמש בה כלל. עצם המעבר ממסך זה מהווה הסכמה מלאה, מודעת ומרצון לכל התנאים שלהלן.</p>
+
+        <h2>1. כללי והגדרות</h2>
+        <p>ברוכים הבאים. מערכת זו ("המערכת") היא הדגמה חינוכית שנבנתה למטרות לימוד בלבד, ומוצגת כפי שהיא ובכפוף לזמינותה ("AS IS" / "AS AVAILABLE"). תנאי שימוש אלה ("התקנון") מהווים הסכם משפטי מחייב בינך, המשתמש/ת ("המשתמש/ת"), לבין יוצר, בונה ומפעיל המערכת ("היוצר"). אם אינך מסכים/ה לתנאי התקנון במלואם וללא סייג — אין להשתמש במערכת בשום אופן, ויש לצאת ממנה מיד.</p>
+
+        <h2>2. מטרה חינוכית בלבד</h2>
+        <p>המערכת נועדה אך ורק להמחיש ולהדגים כיצד ניתן לשמור דף אינטרנט קיים ולהתאים אותו אישית (לימוד פיתוח ווב). המערכת אינה כלי אמיתי, אינה שירות רשמי, אינה תחליף לכל נוהל, אישור או מערכת של מוסד כלשהו, ואינה מיועדת לשימוש מעשי, רשמי או מחייב כלשהו. כל שימוש מעבר לצפייה, הדגמה ולימוד נעשה על דעת המשתמש/ת בלבד ובאחריותו/ה בלבד.</p>
+
+        <h2>3. אין קשר, שיוך או חסות</h2>
+        <p>המערכת אינה מסונפת, אינה מזוהה ואינה קשורה בשום צורה לחברת "פגישונים" / pgishonim, לבית ספר כלשהו, למוסד חינוכי, למורה, למנהל, לרשות, לעירייה או לכל גוף אחר, ואינה נתמכת, ממומנת, מפוקחת או מאושרת על ידם. כל שם, לוגו, סימן, עיצוב או מיתוג המופיעים במערכת שייכים לבעליהם החוקיים, מוצגים אך ורק כחלק מההדגמה החינוכית, ואין בהצגתם משום טענת בעלות או קשר כלשהו.</p>
+
+        <h2>4. השימוש על דעת המשתמש ובאחריותו המלאה</h2>
+        <p>עצם ההחלטה להשתמש במערכת, בכל אופן שהוא, היא החלטה חופשית, עצמאית, אישית ומושכלת של המשתמש/ת בלבד, ואינה נכפית עליו/ה על ידי היוצר. המשתמש/ת נושא/ת באחריות המלאה, הבלעדית והמוחלטת לכל שימוש שייעשה במערכת, לאופן השימוש בה, להקשר שבו ייעשה ולכל תוצאה הנובעת ממנו, לרבות ומבלי לגרוע:</p>
+        <ul>
+            <li>כל תגובה, כעס, אכזבה, טענה, תלונה, נזק או פגיעה מצד בית ספר, מורה, מנהל/ת, שומר/ת, הורה, רשות או כל צד שלישי;</li>
+            <li>כל צעד משמעתי, חינוכי, מנהלי, משפטי או אחר שיינקט כלפי המשתמש/ת, לרבות אם ייחשב השימוש כהטעיה, כהצגת מצג שאינו אמיתי או כהפרת כללי המוסד;</li>
+            <li>כל שימוש לרעה, שימוש בניגוד לנהלים, או שימוש שעלול להטעות אדם אחר לחשוב שמדובר באישור אמיתי;</li>
+            <li>כל נזק, הפסד, קנס, הוצאה או אי-נוחות מכל סוג, ישיר או עקיף, שייגרמו למשתמש/ת או לצד שלישי כלשהו.</li>
+        </ul>
+        <p>המשתמש/ת מצהיר/ה ומאשר/ת כי הובהר לו/ה באופן מלא, ברור ומפורש, כי היוצר אינו אחראי לכל האמור לעיל, וכי הוא/היא מוותר/ת מראש על כל טענה בעניין זה כלפי היוצר.</p>
+
+        <h2>5. נטילת סיכון מפורשת</h2>
+        <p>המשתמש/ת מבין/ה ומסכים/ה במפורש כי כל שימוש במערכת כרוך בסיכון, וכי הוא/היא נוטל/ת על עצמו/ה את מלוא הסיכון הזה מרצונו/ה החופשי. היוצר אינו מבטיח כי השימוש במערכת חוקי, מתאים או מקובל בכל הקשר, והאחריות לבדוק זאת ולהחליט האם להשתמש — מוטלת על המשתמש/ת בלבד.</p>
+
+        <h2>6. הגבלות שימוש ואיסור יציאה מבית הספר</h2>
+        <p>המשתמש/ת מתחייב/ת שלא להשתמש במערכת למטרה בלתי חוקית, מטעה או פוגענית; שלא להציג את תוצרי המערכת כאישור אמיתי, רשמי או תקף בפני גורם כלשהו; ושלא להשתמש בה באופן שעלול לפגוע ביוצר, בצד שלישי או במוסד כלשהו. כל שימוש כאמור הוא באחריות המשתמש/ת בלבד ובניגוד לתנאי תקנון זה.</p>
+        <p class="lead">חל איסור מוחלט להשתמש במערכת כדי לצאת מבית הספר, לעזוב את שטח בית הספר, או כדי להציגה בפני כל גורם כהצדקה או כאישור ליציאה. המערכת היא הדגמה חינוכית בלבד ואינה מהווה ואינה מחליפה אישור יציאה אמיתי. יציאה מבית הספר תוך שימוש במערכת זו אסורה בהחלט ונעשית באחריותו המלאה והבלעדית של המשתמש/ת בלבד.</p>
+        <p>היוצר שומר לעצמו את הזכות, לפי שיקול דעתו הבלעדי, לחסום את גישתו של כל משתמש ולבטל את זכותו להשתמש במערכת. ככל שייוודע ליוצר על משתמש/ת שעשה/תה שימוש במערכת כדי לצאת מבית הספר בניגוד לאיסור זה, יהא היוצר רשאי לשלול, לחסום ולבטל לאלתר את גישתו/ה ואת חשבונו/ה (ככל שקיים), וזאת מבלי לגרוע מכל אחריות המוטלת על המשתמש/ת לפי תקנון זה או על פי כל דין.</p>
+
+        <h2>7. היעדר אחריות של היוצר</h2>
+        <p>המערכת מסופקת כמות שהיא וללא כל אחריות מכל סוג, מפורשת או משתמעת. היוצר אינו מתחייב לדיוק, לשלמות, לזמינות, לאבטחה, להתאמה למטרה כלשהי או לכך שהמערכת תפעל ללא תקלות, שגיאות או הפרעות. בכל מקרה ובמידה המרבית המותרת על פי כל דין, היוצר לא יישא בכל אחריות — חוזית, נזיקית, מכוח חובת זהירות או אחרת — לכל נזק ישיר, עקיף, מקרי, תוצאתי, מיוחד, עונשי או אחר, לרבות אובדן זמן, נתונים או מוניטין, הנובע מהשימוש במערכת או מאי-היכולת להשתמש בה, גם אם היוצר הודע על אפשרות נזק כזה. אחריותו הכוללת של היוצר, אם וככל שתוכר חרף האמור, לא תעלה על אפס (0) ש"ח.</p>
+
+        <h2>8. שיפוי</h2>
+        <p>המשתמש/ת מתחייב/ת לשפות, לפצות ולהגן על היוצר, ולשמור עליו מפני כל תביעה, דרישה, טענה, הליך, חבות, הוצאה או נזק (לרבות שכר טרחת עורך דין והוצאות משפט), הנובעים או הקשורים לשימוש שלו/ה במערכת, להפרת תקנון זה, או לכל מצג שהציג/ה כלפי צד שלישי באמצעות המערכת.</p>
+
+        <h2>9. אינו מסמך רשמי</h2>
+        <p>המערכת אינה מפיקה אישור יציאה אמיתי, חוקי, תקף או רשמי מכל סוג, אינה חתומה, אינה מאומתת, ואינה מחוברת לשום מערכת אמיתית של בית ספר, רשות או כל גוף אחר. כל דמיון למערכת, למסמך או לאישור אמיתיים הוא לצורך ההדגמה החינוכית בלבד, ואין להסתמך עליו לכל צורך שהוא.</p>
+
+        <h2>10. פרטיות</h2>
+        <p>המערכת אינה אוספת, אינה שומרת ואינה משדרת נתונים לאף שרת. כל מידע שמוזן נשמר אך ורק באופן מקומי בדפדפן של המכשיר שבו נעשה השימוש, נשאר בשליטת המשתמש/ת בלבד, וניתן למחיקה על ידו/ה בכל עת דרך הדפדפן. היוצר אינו צד למידע זה ואין לו גישה אליו.</p>
+
+        <h2>11. קטינים</h2>
+        <p>ככל שהמשתמש/ת הוא/היא קטין/ה, השימוש מיועד לצפייה וללימוד בלבד, ומומלץ בחום להתייעץ עם הורה, מורה או אחראי בגיר לפני כל שימוש ולקבל את אישורו/ה. המשך השימוש מהווה הצהרה כי התקבל אישור כאמור ככל שנדרש, וכי הקטין/ה והאחראי/ת עליו/ה מודעים לתנאי תקנון זה ומקבלים אותם.</p>
+
+        <h2>12. ויתור ואי-אכיפה</h2>
+        <p>הימנעות או עיכוב של היוצר באכיפת זכות כלשהי לפי תקנון זה לא ייחשבו כוויתור על אותה זכות או על כל זכות אחרת, והיוצר יהא רשאי לממש את זכויותיו בכל עת.</p>
+
+        <h2>13. עצמאות הסעיפים</h2>
+        <p>ייקבע סעיף כלשהו בתקנון זה כבטל, פסול או בלתי אכיף — יעמדו יתר הסעיפים בתוקפם המלא, והסעיף הפגום יפורש או יצומצם במידה המזערית הדרושה כדי לקיימו ככל האפשר על פי דין.</p>
+
+        <h2>14. דין וסמכות שיפוט</h2>
+        <p>על תקנון זה ועל השימוש במערכת יחולו אך ורק דיני מדינת ישראל, וסמכות השיפוט הבלעדית בכל עניין הנובע מהם תהא נתונה לבתי המשפט המוסמכים במדינת ישראל בלבד.</p>
+
+        <h2>15. שלמות ההסכם וזכות הפסקה</h2>
+        <p>תקנון זה מהווה את ההסכם המלא והבלעדי בין הצדדים בנוגע למערכת, וגובר על כל הבנה או מצג קודמים. היוצר רשאי, לפי שיקול דעתו הבלעדי וללא הודעה מוקדמת, לשנות, להשבית או להפסיק את המערכת, כולה או חלקה, בכל עת וללא כל אחריות.</p>
+
+        <h2>16. קבלת התנאים ושינויים</h2>
+        <p>התקנון מוצג בכל כניסה למערכת, והמשך השימוש לאחר מסך זה מהווה הסכמה מלאה, מודעת ומרצון לכל האמור בו. היוצר רשאי לעדכן את התקנון מעת לעת, והנוסח המוצג בעת השימוש הוא הנוסח המחייב. מי שאינו מסכים לתנאים, כולם או חלקם — מתבקש להפסיק את השימוש לאלתר ולצאת מהמערכת.</p>
+
+        <h2>17. יצירת קשר</h2>
+        <p>לכל שאלה, בקשה, פנייה או בקשה לאפליקציה, ניתן לפנות בדוא"ל לכתובת: <a href="mailto:rainbet5559@gmail.com">rainbet5559@gmail.com</a>.</p>
+
+        <p class="end" id="endMark">— סוף התקנון —</p>
+    </div>
+
+    <div class="foot">
+        <div class="hint" id="hint">⬇️ יש לגלול עד סוף התקנון כדי להמשיך</div>
+        <div class="agree">
+            <input type="checkbox" id="agreeChk" disabled>
+            <label for="agreeChk">קראתי, הבנתי ואני מסכים/ה לכל תנאי התקנון, ומבין/ה שהשימוש הוא על אחריותי המלאה והבלעדית.</label>
+        </div>
+        <button class="btn" id="agreeBtn" disabled>אני מבין/ה ומסכים/ה — המשך</button>
+    </div>
+</div>
+
+<script>
+(function () {
+    var terms = document.getElementById('terms');
+    var hint = document.getElementById('hint');
+    var chk = document.getElementById('agreeChk');
+    var btn = document.getElementById('agreeBtn');
+    var scrolledToEnd = false;
+
+    function refreshBtn() { btn.disabled = !(scrolledToEnd && chk.checked); }
+
+    function markEnd() {
+        if (scrolledToEnd) return;
+        scrolledToEnd = true;
+        chk.disabled = false;
+        hint.textContent = '✓ קראתם עד הסוף — יש לסמן את ההסכמה כדי להמשיך';
+        hint.classList.add('ready');
+        refreshBtn();
+    }
+
+    function onScroll() {
+        if (terms.scrollTop + terms.clientHeight >= terms.scrollHeight - 12) markEnd();
+    }
+
+    terms.addEventListener('scroll', onScroll, { passive: true });
+    chk.addEventListener('change', refreshBtn);
+
+    // if the terms happen to fit without scrolling, don't trap the user
+    window.addEventListener('load', function () {
+        if (terms.scrollHeight <= terms.clientHeight + 12) markEnd();
+    });
+    // also re-check shortly after layout settles
+    setTimeout(onScroll, 400);
+
+    btn.addEventListener('click', function () {
+        if (btn.disabled) return;
+        try { sessionStorage.setItem('pg_tos_ok', '1'); } catch (e) {}
+        document.body.classList.add('pg-leaving');
+        setTimeout(function(){ window.location.href = 'guide.html'; }, 165);
+    });
+})();
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>
