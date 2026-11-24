@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <script>if(!sessionStorage.getItem('pg_auth_ok')){location.replace('login.html');}</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ניהול · מערכת פגישונים</title>
+    <meta name="theme-color" content="#223e9c">
+    <link rel="manifest" href="manifest.json">
+    <style>
+        *{ box-sizing:border-box; }
+        html,body{ margin:0; min-height:100%; }
+        body{ background:linear-gradient(180deg,#223e9c,#17295f); min-height:100vh;
+            font-family:'Rubik','Segoe UI',Arial,sans-serif; color:#1b2336; padding:16px; }
+        .wrap{ max-width:760px; margin:0 auto; }
+        .head{ display:flex; align-items:center; justify-content:space-between; color:#fff; padding:6px 4px 18px; }
+        .head h1{ margin:0; font-size:1.35rem; font-weight:800; }
+        .logout{ background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.35);
+            padding:8px 14px; border-radius:10px; cursor:pointer; font-weight:600; font-size:.9rem; }
+        .panel{ background:#fff; border-radius:18px; box-shadow:0 20px 50px rgba(0,0,0,.3); padding:20px 22px; margin:0 0 18px; }
+        .panel h2{ margin:0 0 4px; font-size:1.1rem; color:#223e9c; }
+        .panel p.sub{ margin:0 0 16px; color:#5a6b8c; font-size:.86rem; }
+        .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
+        .field{ flex:1 1 150px; }
+        .field.small{ flex:0 0 110px; }
+        label{ display:block; font-weight:600; font-size:.82rem; margin:0 0 5px; color:#38445c; }
+        input{ width:100%; padding:11px 12px; font-size:1rem; border:1px solid #d7deec; border-radius:10px; background:#f7f9fd; }
+        input:focus{ outline:none; border-color:#3457c9; background:#fff; }
+        .btn{ border:none; border-radius:11px; padding:12px 18px; color:#fff; background:#18a76c; font-weight:800; cursor:pointer; font-size:.98rem; }
+        .btn:disabled{ opacity:.6; cursor:wait; }
+        .msg{ min-height:1.3em; margin-top:12px; font-size:.9rem; font-weight:600; }
+        table{ width:100%; border-collapse:collapse; }
+        th,td{ text-align:right; padding:10px 8px; border-bottom:1px solid #eef1f7; font-size:.92rem; vertical-align:middle; }
+        th{ color:#5a6b8c; font-size:.78rem; font-weight:700; }
+        .usage{ font-weight:700; }
+        .usage.full{ color:#c62f3b; }
+        .acts{ display:flex; gap:6px; flex-wrap:wrap; }
+        .mini{ border:1px solid #d7deec; background:#f3f6fd; color:#223e9c; border-radius:8px;
+            padding:5px 9px; font-size:.78rem; cursor:pointer; font-weight:600; }
+        .mini.danger{ color:#c62f3b; border-color:#f3c8cd; background:#fdf2f3; }
+        .muted{ color:#8a93a6; font-size:.85rem; }
+        .tag{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:.72rem; font-weight:700; }
+        .tag.off{ background:#fdecec; color:#c62f3b; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="head">
+        <h1>📋 ניהול מערכת</h1>
+        <button class="logout" onclick="mgLogout()">יציאה</button>
+    </div>
+
+    <div class="panel">
+        <h2>יצירת חשבון חדש</h2>
+        <p class="sub">כל משתמש נכנס עם שם החשבון והסיסמה. "מכסת יציאות" = כמה פעמים מותר לו לנעול אישור יציאה.</p>
+        <div class="row">
+            <div class="field"><label for="nName">שם חשבון</label><input id="nName" type="text" autocomplete="off" placeholder="לדוגמה: yosef"></div>
+            <div class="field"><label for="nPass">סיסמה (6+)</label><input id="nPass" type="text" autocomplete="off" placeholder="סיסמה"></div>
+            <div class="field small"><label for="nMax">מכסת יציאות</label><input id="nMax" type="number" min="1" max="999" value="5" inputmode="numeric"></div>
+            <button class="btn" id="createBtn" onclick="mgCreate()">צור חשבון</button>
+        </div>
+        <div class="msg" id="createMsg"></div>
+    </div>
+
+    <div class="panel">
+        <h2>חשבונות קיימים</h2>
+        <p class="sub">רשימת המשתמשים, כמה יציאות ניצלו, ואפשרויות ניהול.</p>
+        <div id="listWrap"><p class="muted" id="listStatus">טוען…</p></div>
+    </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/13.4.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/13.4.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/13.4.0/firebase-database-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="firebase-client.js"></script>
+<script>
+(function () {
+    "use strict";
+    var ADMIN_UID = "EJCy00GeZcR9PSbE994Oe9un7Tn2"; // dsthegoat
+    var secApp = null;
+    function secondary() { if (!secApp) { secApp = firebase.initializeApp(FIREBASE_CONFIG, "pgUserCreator"); } return secApp; }
+
+    function kick() { window.location.replace("login.html"); }
+
+    if (!window.PG_FIREBASE) { document.getElementById("listStatus").textContent = "שירות לא נטען. רעננו."; return; }
+
+    // Gate: only the admin account may view this page.
+    window.PG_FIREBASE.auth.onAuthStateChanged(function (user) {
+        if (!user) { kick(); return; }
+        if (user.uid !== ADMIN_UID) { window.PG_FIREBASE.auth.signOut().then(kick); return; }
+        try { sessionStorage.setItem("pg_auth_ok", "1"); sessionStorage.setItem("pg_admin", "1"); sessionStorage.setItem("pg_uid", user.uid); } catch (e) {}
+        watchAccounts();
+    });
+
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]; }); }
+
+    // ── Create account ────────────────────────────
+    window.mgCreate = function () {
+        var nameEl = document.getElementById("nName");
+        var passEl = document.getElementById("nPass");
+        var maxEl  = document.getElementById("nMax");
+        var btn = document.getElementById("createBtn");
+        var msg = document.getElementById("createMsg");
+        var name = (nameEl.value || "").trim();
+        var pass = passEl.value || "";
+        var max  = parseInt(maxEl.value, 10);
+        function fail(t) { msg.style.color = "#c62f3b"; msg.textContent = t; }
+        if (name.length < 2) { return fail("יש להזין שם חשבון (2 תווים לפחות)."); }
+        if (pass.length < 6) { return fail("הסיסמה חייבת להכיל 6 תווים לפחות."); }
+        if (!(max >= 1)) { return fail("מכסת יציאות חייבת להיות מספר חיובי."); }
+        var email = window.pgAccountToEmail(name);
+        btn.disabled = true; btn.textContent = "יוצר…";
+        msg.style.color = "#5a6b8c"; msg.textContent = "יוצר חשבון…";
+        var sec = secondary();
+        sec.auth().createUserWithEmailAndPassword(email, pass).then(function (cred) {
+            var uid = cred.user.uid;
+            var out = sec.auth().signOut();
+            window.PG_FIREBASE.database.ref("accounts/" + uid).set({
+                name: name, maxExits: max, exitsUsed: 0, disabled: false, createdAt: Date.now()
+            });
+            return out;
+        }).then(function () {
+            msg.style.color = "#16a34a";
+            msg.textContent = '✓ נוצר החשבון "' + name + '" עם ' + max + ' יציאות.';
+            nameEl.value = ""; passEl.value = ""; maxEl.value = "5";
+        }).catch(function (err) {
+            var c = err && err.code;
+            if (c === "auth/email-already-in-use") { fail("שם חשבון זה כבר קיים."); }
+            else if (c === "auth/weak-password") { fail("הסיסמה חלשה מדי (6+ תווים)."); }
+            else if (c === "auth/operation-not-allowed") { fail("יש להפעיל כניסה עם דוא\"ל/סיסמה ב-Firebase."); }
+            else { fail("שגיאה ביצירת החשבון. נסו שוב."); }
+        }).then(function () { btn.disabled = false; btn.textContent = "צור חשבון"; });
+    };
+
+    // ── Live list ─────────────────────────────────
+    function watchAccounts() {
+        window.PG_FIREBASE.database.ref("accounts").on("value", function (snap) {
+            render(snap.val() || {});
+        }, function () {
+            document.getElementById("listStatus").textContent = "לא ניתן לטעון את הרשימה.";
+        });
+    }
+
+    function render(all) {
+        var wrap = document.getElementById("listWrap");
+        var uids = Object.keys(all);
+        if (!uids.length) { wrap.innerHTML = '<p class="muted">אין עדיין חשבונות. צרו חשבון למעלה.</p>'; return; }
+        uids.sort(function (a, b) { return (all[b].createdAt || 0) - (all[a].createdAt || 0); });
+        var html = '<table><thead><tr><th>שם</th><th>יציאות</th><th>סטטוס</th><th>פעולות</th></tr></thead><tbody>';
+        uids.forEach(function (uid) {
+            var a = all[uid] || {};
+            var used = a.exitsUsed || 0, max = (typeof a.maxExits === "number") ? a.maxExits : 0;
+            var full = used >= max;
+            html += '<tr>'
+              + '<td><strong>' + esc(a.name) + '</strong></td>'
+              + '<td class="usage' + (full ? ' full' : '') + '">' + used + ' / ' + max + '</td>'
+              + '<td>' + (a.disabled ? '<span class="tag off">מושבת</span>' : '<span class="muted">פעיל</span>') + '</td>'
+              + '<td><div class="acts">'
+              + '<button class="mini" onclick="mgReset(\'' + uid + '\')">איפוס מונה</button>'
+              + '<button class="mini" onclick="mgLimit(\'' + uid + '\',' + max + ')">שינוי מכסה</button>'
+              + '<button class="mini" onclick="mgToggle(\'' + uid + '\',' + (a.disabled ? 'true' : 'false') + ')">' + (a.disabled ? 'הפעלה' : 'השבתה') + '</button>'
+              + '<button class="mini danger" onclick="mgDelete(\'' + uid + '\',\'' + esc(a.name) + '\')">מחיקה</button>'
+              + '</div></td></tr>';
+        });
+        html += '</tbody></table>';
+        wrap.innerHTML = html;
+    }
+
+    function ref(uid) { return window.PG_FIREBASE.database.ref("accounts/" + uid); }
+    window.mgReset  = function (uid) { ref(uid).child("exitsUsed").set(0); };
+    window.mgToggle = function (uid, isDisabled) { ref(uid).child("disabled").set(!isDisabled); };
+    window.mgLimit  = function (uid, cur) {
+        var v = window.prompt("מכסת יציאות חדשה:", cur);
+        if (v === null) return;
+        var n = parseInt(v, 10);
+        if (n >= 1) { ref(uid).child("maxExits").set(n); } else { window.alert("יש להזין מספר חיובי."); }
+    };
+    window.mgDelete = function (uid, name) {
+        if (!window.confirm('למחוק את החשבון "' + name + '"? המשתמש לא יוכל להיכנס יותר.')) return;
+        ref(uid).remove();
+    };
+
+    window.mgLogout = function () {
+        try { sessionStorage.clear(); } catch (e) {}
+        window.PG_FIREBASE.auth.signOut().then(function () { window.location.replace("login.html"); });
+    };
+})();
+</script>
+</body>
+</html>
