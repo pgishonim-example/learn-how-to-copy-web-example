@@ -18,26 +18,19 @@
             display:flex; align-items:center; justify-content:center; padding:16px;
             -webkit-text-size-adjust:100%;
         }
-        .card{
-            background:#fff; width:100%; max-width:420px; border-radius:22px;
-            box-shadow:0 24px 70px rgba(0,0,0,.45); overflow:hidden;
-        }
+        .card{ background:#fff; width:100%; max-width:420px; border-radius:22px;
+            box-shadow:0 24px 70px rgba(0,0,0,.45); overflow:hidden; }
         .top{ background:linear-gradient(135deg,#223e9c,#3457c9); color:#fff; padding:26px 24px; text-align:center; }
         .top .logo{ font-size:2rem; }
         .top h1{ margin:8px 0 4px; font-size:1.4rem; font-weight:800; }
         .top p{ margin:0; opacity:.9; font-size:.9rem; }
         form{ padding:24px; }
         label{ display:block; font-weight:600; font-size:.9rem; margin:0 0 6px; }
-        input{
-            width:100%; padding:13px 14px; margin:0 0 16px; font-size:1rem;
-            border:1px solid #d7deec; border-radius:12px; background:#f7f9fd; color:#1b2336;
-        }
+        input{ width:100%; padding:13px 14px; margin:0 0 16px; font-size:1rem;
+            border:1px solid #d7deec; border-radius:12px; background:#f7f9fd; color:#1b2336; }
         input:focus{ outline:none; border-color:#3457c9; background:#fff; }
-        .btn{
-            width:100%; border:none; border-radius:13px; padding:15px; font-size:1.08rem;
-            font-weight:800; color:#fff; background:#18a76c; cursor:pointer;
-            box-shadow:0 10px 24px rgba(24,167,108,.32);
-        }
+        .btn{ width:100%; border:none; border-radius:13px; padding:15px; font-size:1.08rem;
+            font-weight:800; color:#fff; background:#18a76c; cursor:pointer; box-shadow:0 10px 24px rgba(24,167,108,.32); }
         .btn:disabled{ background:#c3cad8; box-shadow:none; cursor:wait; }
         .msg{ min-height:1.3em; margin:14px 2px 0; text-align:center; font-size:.9rem; color:#c62f3b; font-weight:600; }
         .note{ margin:16px 0 0; text-align:center; font-size:.8rem; color:#8a93a6; line-height:1.5; }
@@ -69,13 +62,46 @@
 <script>
 (function () {
     "use strict";
+    var ADMIN_UID = "EJCy00GeZcR9PSbE994Oe9un7Tn2"; // dsthegoat = owner/admin
     var form = document.getElementById("loginForm");
     var msg  = document.getElementById("msg");
     var btn  = document.getElementById("loginBtn");
+    var routed = false;
 
-    function enter() {
-        try { sessionStorage.setItem("pg_auth_ok", "1"); } catch (e) {}
-        window.location.replace("index.html");
+    function reset() { routed = false; btn.disabled = false; btn.textContent = "כניסה"; }
+
+    function route(user) {
+        if (routed) return;
+        routed = true;
+        var uid = user.uid;
+        try { sessionStorage.setItem("pg_uid", uid); } catch (e) {}
+        if (uid === ADMIN_UID) {
+            try { sessionStorage.setItem("pg_auth_ok", "1"); sessionStorage.setItem("pg_admin", "1"); } catch (e) {}
+            window.location.replace("manage.html");
+            return;
+        }
+        // Regular user: must have an active account record created by the admin.
+        window.PG_FIREBASE.database.ref("accounts/" + uid).once("value").then(function (snap) {
+            var acc = snap.val();
+            if (!acc || acc.disabled) {
+                msg.textContent = "החשבון אינו פעיל. פנה/י למנהל המערכת.";
+                window.PG_FIREBASE.auth.signOut();
+                reset();
+                return;
+            }
+            try {
+                sessionStorage.setItem("pg_auth_ok", "1");
+                try { sessionStorage.removeItem("pg_admin"); } catch (e) {}
+                sessionStorage.setItem("pg_name", acc.name || "");
+                sessionStorage.setItem("pg_max", String(acc.maxExits == null ? 0 : acc.maxExits));
+                sessionStorage.setItem("pg_used", String(acc.exitsUsed || 0));
+            } catch (e) {}
+            window.location.replace("index.html");
+        }).catch(function () {
+            msg.textContent = "לא ניתן לאמת את החשבון כעת. נסו שוב.";
+            window.PG_FIREBASE.auth.signOut();
+            reset();
+        });
     }
 
     if (!window.PG_FIREBASE) {
@@ -84,9 +110,9 @@
         return;
     }
 
-    // Already signed in on this device? go straight in.
+    // Already signed in on this device → route automatically.
     window.PG_FIREBASE.auth.onAuthStateChanged(function (user) {
-        if (user) { enter(); }
+        if (user && !routed) { route(user); }
     });
 
     form.addEventListener("submit", function (ev) {
@@ -98,11 +124,8 @@
         btn.disabled = true; btn.textContent = "בודק…"; msg.textContent = "";
         var email = window.pgAccountToEmail(name);
         window.PG_FIREBASE.auth.signInWithEmailAndPassword(email, pass)
-            .then(function () { enter(); })
-            .catch(function () {
-                msg.textContent = "שם חשבון או סיסמה שגויים.";
-                btn.disabled = false; btn.textContent = "כניסה";
-            });
+            .then(function (cred) { route(cred.user); })
+            .catch(function () { msg.textContent = "שם חשבון או סיסמה שגויים."; reset(); });
     });
 })();
 </script>
