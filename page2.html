@@ -75,6 +75,11 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
         }, false);
       })();
     </script>
+    <script defer src="https://www.gstatic.com/firebasejs/13.4.0/firebase-app-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/13.4.0/firebase-auth-compat.js"></script>
+    <script defer src="https://www.gstatic.com/firebasejs/13.4.0/firebase-database-compat.js"></script>
+    <script defer src="firebase-config.js"></script>
+    <script defer src="firebase-client.js"></script>
     <script>
       // 100% LOCAL, 100% INSTANT: exit + return happen in place on THIS screen — no page load, nothing sent anywhere.
       var PG_LOCK_IMG = './pg4_files/lock.webp';
@@ -110,13 +115,36 @@ body[unresolved] {opacity: 0; display: block; overflow: hidden; position: relati
       }
 
       // Tap "נעל אישור" -> instantly show the "left school" state (with a stamp animation).
-      function pgCommitExit(btn){
-        if(btn){ btn.disabled=true; }
+      // Actually lock the exit in place (original behaviour).
+      function pgDoCommitExit(btn){
         if(typeof pgCloseExitModal==='function'){ pgCloseExitModal(); }
         var hh=pgNowHHMM();
         pgSave(function(d){ d.exitTime=hh; d.returnTime=''; });
         pgShowOut(hh, '--:--');
         pgPlayStamp();
+      }
+      // Gatekeeper: enforce the per-account exit limit set by the admin before locking.
+      function pgCommitExit(btn){
+        var isAdmin=false, uid=null;
+        try{ isAdmin = sessionStorage.getItem('pg_admin')==='1'; }catch(e){}
+        try{ uid = sessionStorage.getItem('pg_uid'); }catch(e){}
+        if(!uid && window.PG_FIREBASE && window.PG_FIREBASE.auth.currentUser){ uid = window.PG_FIREBASE.auth.currentUser.uid; }
+        // Admin, or no way to verify → behave like the original (no limit).
+        if(isAdmin || !uid || !window.PG_FIREBASE){ if(btn) btn.disabled=true; return pgDoCommitExit(btn); }
+        if(btn) btn.disabled=true;
+        var ref=window.PG_FIREBASE.database.ref('accounts/'+uid);
+        ref.once('value').then(function(snap){
+          var acc=snap.val();
+          if(!acc){ if(btn) btn.disabled=false; window.alert('החשבון אינו מוגדר. פנה/י למנהל.'); return; }
+          var max=(typeof acc.maxExits==='number')?acc.maxExits:0;
+          var used=acc.exitsUsed||0;
+          if(used>=max){ if(btn) btn.disabled=false; window.alert('הגעת למכסת היציאות שלך ('+used+'/'+max+').\nפנה/י למנהל כדי לקבל עוד.'); return; }
+          ref.child('exitsUsed').transaction(function(c){ return (c||0)+1; }, function(err, committed, s){
+            if(err || !committed){ if(btn) btn.disabled=false; window.alert('שגיאה. נסו שוב.'); return; }
+            try{ sessionStorage.setItem('pg_used', String((s&&s.val())!=null?s.val():used+1)); }catch(e){}
+            pgDoCommitExit(btn);
+          });
+        }).catch(function(){ if(btn) btn.disabled=false; window.alert('לא ניתן לאמת כרגע. נסו שוב.'); });
       }
       function pgShowOut(exitTime, returnTime){
         pgSetTile('שעת יציאה', exitTime);
