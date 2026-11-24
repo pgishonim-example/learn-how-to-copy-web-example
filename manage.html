@@ -209,6 +209,7 @@
             var full = used >= max && max > 0;
             var sub = [];
             if (a.cls) sub.push("כיתה " + esc(a.cls));
+            if (a.deviceId) sub.push("📱 נעול למכשיר");
             if (a.createdAt) sub.push("נוצר " + fmtDate(a.createdAt));
             html += '<tr>'
               + '<td><div class="uname">' + esc(a.name) + '</div>' + (sub.length ? '<div class="usub">' + sub.join(" · ") + '</div>' : '') + '</td>'
@@ -220,6 +221,7 @@
               + '<button class="mini" onclick="mgAddLimit(\'' + uid + '\',' + max + ')">+5 מכסה</button>'
               + '<button class="mini" onclick="mgLimit(\'' + uid + '\',' + max + ')">שינוי מכסה</button>'
               + '<button class="mini" onclick="mgToggle(\'' + uid + '\',' + (a.disabled ? 'true' : 'false') + ')">' + (a.disabled ? 'הפעלה' : 'השבתה') + '</button>'
+              + (a.deviceId ? '<button class="mini" onclick="mgResetDevice(\'' + uid + '\')">שחרר מכשיר</button>' : '')
               + '<button class="mini danger" onclick="mgDelete(\'' + uid + '\',\'' + esc(a.name) + '\')">מחיקה</button>'
               + '</div></td></tr>';
         });
@@ -241,6 +243,10 @@
     window.mgDelete = function (uid, name) {
         if (!window.confirm('למחוק את החשבון "' + name + '"? המשתמש לא יוכל להיכנס יותר.')) return;
         ref(uid).remove();
+    };
+    window.mgResetDevice = function (uid) {
+        if (!window.confirm("לשחרר את החשבון מהמכשיר הנוכחי? המשתמש יוכל אז להתחבר ממכשיר חדש (והוא ינעל לאותו מכשיר).")) return;
+        ref(uid).child("deviceId").remove();
     };
     window.mgResetAll = function () {
         var uids = Object.keys(lastAccounts);
