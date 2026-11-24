@@ -12,11 +12,18 @@
         html,body{ margin:0; min-height:100%; }
         body{ background:linear-gradient(180deg,#223e9c,#17295f); min-height:100vh;
             font-family:'Rubik','Segoe UI',Arial,sans-serif; color:#1b2336; padding:16px; }
-        .wrap{ max-width:760px; margin:0 auto; }
+        .wrap{ max-width:820px; margin:0 auto; }
         .head{ display:flex; align-items:center; justify-content:space-between; color:#fff; padding:6px 4px 18px; }
         .head h1{ margin:0; font-size:1.35rem; font-weight:800; }
         .logout{ background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.35);
             padding:8px 14px; border-radius:10px; cursor:pointer; font-weight:600; font-size:.9rem; }
+        .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin:0 0 16px; }
+        .stat{ background:rgba(255,255,255,.12); border:1px solid rgba(255,255,255,.18); border-radius:14px;
+            padding:12px 10px; text-align:center; color:#fff; }
+        .stat .num{ font-size:1.5rem; font-weight:800; line-height:1.1; }
+        .stat .lbl{ font-size:.72rem; opacity:.85; margin-top:3px; }
+        .stat.warn .num{ color:#ffd4d4; }
+        @media(max-width:520px){ .stats{ grid-template-columns:repeat(2,1fr); } }
         .panel{ background:#fff; border-radius:18px; box-shadow:0 20px 50px rgba(0,0,0,.3); padding:20px 22px; margin:0 0 18px; }
         .panel h2{ margin:0 0 4px; font-size:1.1rem; color:#223e9c; }
         .panel p.sub{ margin:0 0 16px; color:#5a6b8c; font-size:.86rem; }
@@ -28,16 +35,22 @@
         input:focus{ outline:none; border-color:#3457c9; background:#fff; }
         .btn{ border:none; border-radius:11px; padding:12px 18px; color:#fff; background:#18a76c; font-weight:800; cursor:pointer; font-size:.98rem; }
         .btn:disabled{ opacity:.6; cursor:wait; }
+        .btn.ghost{ background:#eef2fb; color:#223e9c; border:1px solid #d7deec; }
         .msg{ min-height:1.3em; margin-top:12px; font-size:.9rem; font-weight:600; }
+        .listtools{ display:flex; gap:10px; align-items:center; margin:0 0 14px; flex-wrap:wrap; }
+        .listtools input{ flex:1 1 160px; }
         table{ width:100%; border-collapse:collapse; }
         th,td{ text-align:right; padding:10px 8px; border-bottom:1px solid #eef1f7; font-size:.92rem; vertical-align:middle; }
         th{ color:#5a6b8c; font-size:.78rem; font-weight:700; }
+        .uname{ font-weight:700; }
+        .usub{ color:#8a93a6; font-size:.74rem; margin-top:2px; }
         .usage{ font-weight:700; }
         .usage.full{ color:#c62f3b; }
         .acts{ display:flex; gap:6px; flex-wrap:wrap; }
         .mini{ border:1px solid #d7deec; background:#f3f6fd; color:#223e9c; border-radius:8px;
             padding:5px 9px; font-size:.78rem; cursor:pointer; font-weight:600; }
         .mini.danger{ color:#c62f3b; border-color:#f3c8cd; background:#fdf2f3; }
+        .mini.good{ color:#0f7a4e; border-color:#bfe6d2; background:#eefaf3; }
         .muted{ color:#8a93a6; font-size:.85rem; }
         .tag{ display:inline-block; padding:2px 8px; border-radius:999px; font-size:.72rem; font-weight:700; }
         .tag.off{ background:#fdecec; color:#c62f3b; }
@@ -50,12 +63,20 @@
         <button class="logout" onclick="mgLogout()">יציאה</button>
     </div>
 
+    <div class="stats" id="stats">
+        <div class="stat"><div class="num" id="stAcc">–</div><div class="lbl">חשבונות</div></div>
+        <div class="stat"><div class="num" id="stActive">–</div><div class="lbl">פעילים</div></div>
+        <div class="stat warn"><div class="num" id="stFull">–</div><div class="lbl">הגיעו למכסה</div></div>
+        <div class="stat"><div class="num" id="stExits">–</div><div class="lbl">יציאות סה״כ</div></div>
+    </div>
+
     <div class="panel">
         <h2>יצירת חשבון חדש</h2>
         <p class="sub">כל משתמש נכנס עם שם החשבון והסיסמה. "מכסת יציאות" = כמה פעמים מותר לו לנעול אישור יציאה.</p>
         <div class="row">
             <div class="field"><label for="nName">שם חשבון</label><input id="nName" type="text" autocomplete="off" placeholder="לדוגמה: yosef"></div>
             <div class="field"><label for="nPass">סיסמה (6+)</label><input id="nPass" type="text" autocomplete="off" placeholder="סיסמה"></div>
+            <div class="field small"><label for="nClass">כיתה (לא חובה)</label><input id="nClass" type="text" autocomplete="off" placeholder="ז'3"></div>
             <div class="field small"><label for="nMax">מכסת יציאות</label><input id="nMax" type="number" min="1" max="999" value="5" inputmode="numeric"></div>
             <button class="btn" id="createBtn" onclick="mgCreate()">צור חשבון</button>
         </div>
@@ -65,6 +86,10 @@
     <div class="panel">
         <h2>חשבונות קיימים</h2>
         <p class="sub">רשימת המשתמשים, כמה יציאות ניצלו, ואפשרויות ניהול.</p>
+        <div class="listtools">
+            <input id="search" type="search" placeholder="🔍 חיפוש לפי שם או כיתה…" oninput="mgRender()">
+            <button class="btn ghost" onclick="mgResetAll()">איפוס כל המונים</button>
+        </div>
         <div id="listWrap"><p class="muted" id="listStatus">טוען…</p></div>
     </div>
 </div>
@@ -79,6 +104,7 @@
     "use strict";
     var ADMIN_UID = "EJCy00GeZcR9PSbE994Oe9un7Tn2"; // dsthegoat
     var secApp = null;
+    var lastAccounts = {};
     function secondary() { if (!secApp) { secApp = firebase.initializeApp(FIREBASE_CONFIG, "pgUserCreator"); } return secApp; }
 
     function kick() { window.location.replace("login.html"); }
@@ -94,16 +120,19 @@
     });
 
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]; }); }
+    function fmtDate(ts) { if (!ts) return ""; try { return new Date(ts).toLocaleDateString("he-IL", { day:"2-digit", month:"2-digit", year:"2-digit" }); } catch (e) { return ""; } }
 
     // ── Create account ────────────────────────────
     window.mgCreate = function () {
         var nameEl = document.getElementById("nName");
         var passEl = document.getElementById("nPass");
+        var classEl = document.getElementById("nClass");
         var maxEl  = document.getElementById("nMax");
         var btn = document.getElementById("createBtn");
         var msg = document.getElementById("createMsg");
         var name = (nameEl.value || "").trim();
         var pass = passEl.value || "";
+        var cls  = (classEl.value || "").trim();
         var max  = parseInt(maxEl.value, 10);
         function fail(t) { msg.style.color = "#c62f3b"; msg.textContent = t; }
         if (name.length < 2) { return fail("יש להזין שם חשבון (2 תווים לפחות)."); }
@@ -117,13 +146,13 @@
             var uid = cred.user.uid;
             var out = sec.auth().signOut();
             window.PG_FIREBASE.database.ref("accounts/" + uid).set({
-                name: name, maxExits: max, exitsUsed: 0, disabled: false, createdAt: Date.now()
+                name: name, cls: cls, maxExits: max, exitsUsed: 0, disabled: false, createdAt: Date.now()
             });
             return out;
         }).then(function () {
             msg.style.color = "#16a34a";
             msg.textContent = '✓ נוצר החשבון "' + name + '" עם ' + max + ' יציאות.';
-            nameEl.value = ""; passEl.value = ""; maxEl.value = "5";
+            nameEl.value = ""; passEl.value = ""; classEl.value = ""; maxEl.value = "5";
         }).catch(function (err) {
             var c = err && err.code;
             if (c === "auth/email-already-in-use") { fail("שם חשבון זה כבר קיים."); }
@@ -136,28 +165,59 @@
     // ── Live list ─────────────────────────────────
     function watchAccounts() {
         window.PG_FIREBASE.database.ref("accounts").on("value", function (snap) {
-            render(snap.val() || {});
+            lastAccounts = snap.val() || {};
+            mgRender();
         }, function () {
             document.getElementById("listStatus").textContent = "לא ניתן לטעון את הרשימה.";
         });
     }
 
-    function render(all) {
+    function updateStats(all, uids) {
+        var active = 0, full = 0, exits = 0;
+        uids.forEach(function (uid) {
+            var a = all[uid] || {};
+            var used = a.exitsUsed || 0, max = (typeof a.maxExits === "number") ? a.maxExits : 0;
+            if (!a.disabled) active++;
+            if (used >= max && max > 0) full++;
+            exits += used;
+        });
+        document.getElementById("stAcc").textContent = uids.length;
+        document.getElementById("stActive").textContent = active;
+        document.getElementById("stFull").textContent = full;
+        document.getElementById("stExits").textContent = exits;
+    }
+
+    window.mgRender = function () {
+        var all = lastAccounts;
         var wrap = document.getElementById("listWrap");
-        var uids = Object.keys(all);
-        if (!uids.length) { wrap.innerHTML = '<p class="muted">אין עדיין חשבונות. צרו חשבון למעלה.</p>'; return; }
+        var allUids = Object.keys(all);
+        updateStats(all, allUids);
+        var q = (document.getElementById("search").value || "").trim().toLowerCase();
+        var uids = allUids.filter(function (uid) {
+            if (!q) return true;
+            var a = all[uid] || {};
+            return (String(a.name || "").toLowerCase().indexOf(q) !== -1) ||
+                   (String(a.cls || "").toLowerCase().indexOf(q) !== -1);
+        });
+        if (!allUids.length) { wrap.innerHTML = '<p class="muted">אין עדיין חשבונות. צרו חשבון למעלה.</p>'; return; }
+        if (!uids.length) { wrap.innerHTML = '<p class="muted">אין תוצאות לחיפוש זה.</p>'; return; }
         uids.sort(function (a, b) { return (all[b].createdAt || 0) - (all[a].createdAt || 0); });
         var html = '<table><thead><tr><th>שם</th><th>יציאות</th><th>סטטוס</th><th>פעולות</th></tr></thead><tbody>';
         uids.forEach(function (uid) {
             var a = all[uid] || {};
             var used = a.exitsUsed || 0, max = (typeof a.maxExits === "number") ? a.maxExits : 0;
-            var full = used >= max;
+            var full = used >= max && max > 0;
+            var sub = [];
+            if (a.cls) sub.push("כיתה " + esc(a.cls));
+            if (a.createdAt) sub.push("נוצר " + fmtDate(a.createdAt));
             html += '<tr>'
-              + '<td><strong>' + esc(a.name) + '</strong></td>'
+              + '<td><div class="uname">' + esc(a.name) + '</div>' + (sub.length ? '<div class="usub">' + sub.join(" · ") + '</div>' : '') + '</td>'
               + '<td class="usage' + (full ? ' full' : '') + '">' + used + ' / ' + max + '</td>'
               + '<td>' + (a.disabled ? '<span class="tag off">מושבת</span>' : '<span class="muted">פעיל</span>') + '</td>'
               + '<td><div class="acts">'
-              + '<button class="mini" onclick="mgReset(\'' + uid + '\')">איפוס מונה</button>'
+              + '<button class="mini good" onclick="mgReset(\'' + uid + '\')">איפוס מונה</button>'
+              + '<button class="mini" onclick="mgUndo(\'' + uid + '\')">−1</button>'
+              + '<button class="mini" onclick="mgAddLimit(\'' + uid + '\',' + max + ')">+5 מכסה</button>'
               + '<button class="mini" onclick="mgLimit(\'' + uid + '\',' + max + ')">שינוי מכסה</button>'
               + '<button class="mini" onclick="mgToggle(\'' + uid + '\',' + (a.disabled ? 'true' : 'false') + ')">' + (a.disabled ? 'הפעלה' : 'השבתה') + '</button>'
               + '<button class="mini danger" onclick="mgDelete(\'' + uid + '\',\'' + esc(a.name) + '\')">מחיקה</button>'
@@ -165,11 +225,13 @@
         });
         html += '</tbody></table>';
         wrap.innerHTML = html;
-    }
+    };
 
     function ref(uid) { return window.PG_FIREBASE.database.ref("accounts/" + uid); }
     window.mgReset  = function (uid) { ref(uid).child("exitsUsed").set(0); };
+    window.mgUndo   = function (uid) { ref(uid).child("exitsUsed").transaction(function (c) { c = c || 0; return c > 0 ? c - 1 : 0; }); };
     window.mgToggle = function (uid, isDisabled) { ref(uid).child("disabled").set(!isDisabled); };
+    window.mgAddLimit = function (uid, cur) { var n = (parseInt(cur, 10) || 0) + 5; ref(uid).child("maxExits").set(n); };
     window.mgLimit  = function (uid, cur) {
         var v = window.prompt("מכסת יציאות חדשה:", cur);
         if (v === null) return;
@@ -179,6 +241,14 @@
     window.mgDelete = function (uid, name) {
         if (!window.confirm('למחוק את החשבון "' + name + '"? המשתמש לא יוכל להיכנס יותר.')) return;
         ref(uid).remove();
+    };
+    window.mgResetAll = function () {
+        var uids = Object.keys(lastAccounts);
+        if (!uids.length) { return; }
+        if (!window.confirm("לאפס את מונה היציאות של כל " + uids.length + " החשבונות ל-0?")) return;
+        var updates = {};
+        uids.forEach(function (uid) { updates[uid + "/exitsUsed"] = 0; });
+        window.PG_FIREBASE.database.ref("accounts").update(updates);
     };
 
     window.mgLogout = function () {
