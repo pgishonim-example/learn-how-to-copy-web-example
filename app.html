@@ -108,7 +108,7 @@
                         </div>
                     </div>
                     <div id="createErr" class="text-danger mt-2" style="display:none"></div>
-                    <div class="daily-limit-note" role="note"><strong>חשוב:</strong> כל טלפון יכול ליצור אישור אחד ביום בלבד. אחרי יצירת אישור, אפשר ליצור אישור נוסף רק מחר.</div>
+                    <div class="daily-limit-note" role="note" id="pgRemain" style="display:none"></div>
                     <button id="createBtn" class="btn btn-success btn-lg">צור אישור</button>
                 </div>
                 <div class="text-center" style="margin-top:10px;">
@@ -152,6 +152,20 @@
     function nowHHMM(){ var d=new Date(); return two(d.getHours())+':'+two(d.getMinutes()); }
     function todayISO(){ var d=new Date(); return d.getFullYear()+'-'+two(d.getMonth()+1)+'-'+two(d.getDate()); }
 
+    // Show how many exits the logged-in account has left (from values saved at login / updated at each lock).
+    function pgShowRemaining(){
+        var el = document.getElementById('pgRemain'); if(!el) return;
+        var isAdmin=false, max=0, used=0;
+        try{ isAdmin = sessionStorage.getItem('pg_admin')==='1'; }catch(e){}
+        try{ max = parseInt(sessionStorage.getItem('pg_max')||'0',10)||0; }catch(e){}
+        try{ used = parseInt(sessionStorage.getItem('pg_used')||'0',10)||0; }catch(e){}
+        if(isAdmin){ el.innerHTML = '<strong>מנהל/ת:</strong> אין הגבלת יציאות.'; el.style.color=''; el.style.display='block'; return; }
+        var left = max - used; if(left<0){ left=0; }
+        if(left<=0){ el.innerHTML = '⛔ ניצלת את כל היציאות שלך ('+used+'/'+max+'). פנה/י למנהל/ת כדי לקבל עוד.'; el.style.color='#c62f3b'; }
+        else { el.innerHTML = '🚪 נותרו לך <strong>'+left+'</strong> יציאות מתוך '+max+'.'; el.style.color=''; }
+        el.style.display='block';
+    }
+
     function dailyIssueState(){
         try {
             var today = todayISO();
@@ -185,15 +199,8 @@
     }
 
     function checkDailyIssue(){
-        var state = dailyIssueState();
-        if (!state.available) {
-            showDailyBlocked('לא ניתן לבדוק אם נוצר אישור היום. יש לאפשר שמירת נתונים בדפדפן.');
-            return false;
-        }
-        if (state.issued) {
-            showDailyBlocked();
-            return false;
-        }
+        // Once-per-day block REMOVED. The only limit now is the per-account
+        // exit quota, enforced when locking the approval (page2). Always allow.
         clearDailyBlocked();
         return true;
     }
@@ -235,6 +242,7 @@
     document.getElementById('qClass').value = last.klass || '';
     document.getElementById('qDate').value = todayISO();
     document.getElementById('qTime').value = nowHHMM();
+    pgShowRemaining();
     checkDailyIssue();
     var displayedDate = todayISO();
     setInterval(function(){
@@ -271,8 +279,8 @@
             return;
         }
         cErr.style.display = 'none';
-        // Show the daily limit before the final approval confirmation.
-        showDailyLimit();
+        // No daily limit anymore — go straight to the pledge confirmation.
+        showPledge();
     }
 
     function showPledge(){
