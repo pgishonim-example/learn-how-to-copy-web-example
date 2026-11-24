@@ -586,6 +586,17 @@
       <textarea id="generatedCodes" readonly aria-label="קודי גישה שנוצרו" placeholder="הקודים החדשים יוצגו כאן פעם אחת. שמרו ושלחו אותם למשתמשים."></textarea>
     </section>
 
+    <section class="code-panel" aria-labelledby="accountsTitle" style="display:block;">
+      <h2 id="accountsTitle" style="margin:0 0 4px;">חשבונות משתמשים</h2>
+      <p style="margin:0 0 12px;color:var(--muted);font-size:.84rem;">צרו חשבון (שם חשבון + סיסמה) לכל משתמש. המשתמשים נכנסים למערכת עם שם החשבון והסיסמה שתיתנו להם.</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <input id="newAccName" type="text" placeholder="שם חשבון" autocomplete="off" style="flex:1 1 150px;width:auto;margin:0;">
+        <input id="newAccPass" type="text" placeholder="סיסמה (6+ תווים)" autocomplete="off" style="flex:1 1 150px;width:auto;margin:0;">
+        <button id="createAccBtn" type="button" onclick="createAccount()">צור חשבון</button>
+      </div>
+      <div id="accountsMsg" style="min-height:1.4em;margin-top:10px;font-size:.9rem;color:var(--muted);"></div>
+    </section>
+
     <!-- Stat Cards -->
     <div class="stat-cards" id="statCards">
       <div class="stat-card blue">
@@ -779,6 +790,51 @@ function adminLogin(event) {
 function adminLogout() {
   configOk = false;
   if (window.PG_FIREBASE) window.PG_FIREBASE.auth.signOut();
+}
+
+// ── User account creation (owner only) ────────────
+// Uses a SECONDARY Firebase app so creating a user does not sign the owner out.
+var pgSecondaryApp = null;
+function pgGetSecondary() {
+  if (!pgSecondaryApp) { pgSecondaryApp = firebase.initializeApp(FIREBASE_CONFIG, "pgUserCreator"); }
+  return pgSecondaryApp;
+}
+function createAccount() {
+  var nameEl = document.getElementById("newAccName");
+  var passEl = document.getElementById("newAccPass");
+  var btn = document.getElementById("createAccBtn");
+  var msg = document.getElementById("accountsMsg");
+  var name = (nameEl.value || "").trim();
+  var pass = passEl.value || "";
+  function fail(t) { msg.style.color = "var(--danger)"; msg.textContent = t; }
+  if (name.length < 2) { return fail("יש להזין שם חשבון (2 תווים לפחות)."); }
+  if (pass.length < 6) { return fail("הסיסמה חייבת להכיל 6 תווים לפחות."); }
+  if (!window.pgAccountToEmail) { return fail("שירות הכניסה לא נטען. רעננו ונסו שוב."); }
+  var email = window.pgAccountToEmail(name);
+  btn.disabled = true; btn.textContent = "יוצר…";
+  msg.style.color = "var(--muted)"; msg.textContent = "יוצר חשבון…";
+  var sec = pgGetSecondary();
+  sec.auth().createUserWithEmailAndPassword(email, pass).then(function (cred) {
+    var uid = cred.user.uid;
+    var done = sec.auth().signOut();
+    if (window.PG_FIREBASE) {
+      window.PG_FIREBASE.database.ref("accounts/" + uid)
+        .set({ name: name, createdAt: Date.now() }).catch(function () {});
+    }
+    return done;
+  }).then(function () {
+    msg.style.color = "#16a34a";
+    msg.textContent = '✓ החשבון "' + name + '" נוצר. המשתמש יכול להיכנס עם השם והסיסמה.';
+    nameEl.value = ""; passEl.value = "";
+  }).catch(function (err) {
+    var code = err && err.code;
+    if (code === "auth/email-already-in-use") { fail("שם חשבון זה כבר קיים."); }
+    else if (code === "auth/weak-password") { fail("הסיסמה חלשה מדי (6 תווים לפחות)."); }
+    else if (code === "auth/operation-not-allowed") { fail("יש להפעיל כניסה עם דוא\"ל/סיסמה ב-Firebase."); }
+    else { fail("שגיאה ביצירת החשבון. נסו שוב."); }
+  }).then(function () {
+    btn.disabled = false; btn.textContent = "צור חשבון";
+  });
 }
 
 // ── Date range helper ─────────────────────────────
