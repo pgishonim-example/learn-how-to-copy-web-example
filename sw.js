@@ -3,7 +3,7 @@
 //  - Heavy static files (Firebase SDK, CSS, fonts, images): serve INSTANTLY from cache,
 //    refresh in the background. These survive even when the app clears its network cache.
 //  - HTML pages: network-first (always fresh), fall back to cache when offline.
-const CACHE = 'pgishonim-v5';
+const CACHE = 'pgishonim-v6';
 
 self.addEventListener('install', function (e) { self.skipWaiting(); });
 
@@ -37,6 +37,12 @@ self.addEventListener('fetch', function (e) {
         });
       })
     );
+    return;
+  }
+
+  // The login / device-gate page must ALWAYS be fresh — never served from cache.
+  if (url.indexOf('login.html') !== -1) {
+    e.respondWith(fetch(e.request).catch(function () { return caches.match(e.request); }));
     return;
   }
 
