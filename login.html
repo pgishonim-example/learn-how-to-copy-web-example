@@ -39,6 +39,7 @@
 <body>
 <!-- Device access gate: a distinct dark "no access" page (NOT the app UI) until the device is verified. -->
 <div id="pgGate" aria-hidden="true" style="position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;min-height:100vh;background:#0f1115;z-index:2147483647;display:flex;align-items:center;justify-content:center;font-family:Arial,Helvetica,sans-serif;">
+  <div id="pgGateChecking" style="text-align:center;color:#9aa0ab;font:600 16px/1.7 Arial,Helvetica,sans-serif;">🔒<br>בודק גישה…</div>
   <div id="pgGateInfo" style="display:none;text-align:center;padding:28px;max-width:360px;color:#cfd3da;">
     <div style="font-size:46px;margin-bottom:10px;">🔒</div>
     <div style="font-size:19px;font-weight:800;color:#fff;">אין גישה במכשיר זה</div>
@@ -100,13 +101,17 @@
     function pgGateCheck() {
         var gate = document.getElementById("pgGate");
         var info = document.getElementById("pgGateInfo");
+        var checking = document.getElementById("pgGateChecking");
         var codeEl = document.getElementById("pgGateCode");
         var adminLink = document.getElementById("pgGateAdmin");
+        var started = Date.now();
         function showCard() { var c = document.getElementById("pgCard"); if (c) { c.style.display = ""; } }
+        // Always let the dark "checking" screen show for at least a moment first.
+        function after(cb) { var w = 800 - (Date.now() - started); setTimeout(cb, w > 0 ? w : 0); }
         if (codeEl) { codeEl.textContent = devId; }
         if (adminLink) { adminLink.onclick = function (e) { e.preventDefault(); if (gate) { gate.style.display = "none"; } showCard(); }; }
-        function allow(resolve) { deviceAllowed = true; if (gate) { gate.style.display = "none"; } showCard(); resolve(true); }
-        function deny(resolve) { deviceAllowed = false; if (info) { info.style.display = "block"; } resolve(false); }
+        function allow(resolve) { after(function () { deviceAllowed = true; if (gate) { gate.style.display = "none"; } showCard(); resolve(true); }); }
+        function deny(resolve) { after(function () { deviceAllowed = false; if (checking) { checking.style.display = "none"; } if (info) { info.style.display = "block"; } resolve(false); }); }
         return new Promise(function (resolve) {
             var base = "";
             try { base = (window.FIREBASE_CONFIG && FIREBASE_CONFIG.databaseURL ? FIREBASE_CONFIG.databaseURL : "").replace(/\/$/, ""); } catch (e) {}
