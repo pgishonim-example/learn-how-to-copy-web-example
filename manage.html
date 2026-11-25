@@ -92,6 +92,18 @@
         </div>
         <div id="listWrap"><p class="muted" id="listStatus">טוען…</p></div>
     </div>
+
+    <div class="panel">
+        <h2>גישת מכשירים</h2>
+        <p class="sub">רק מכשירים שתאשר/י כאן יכולים בכלל להיכנס. מכשיר לא מאושר רואה מסך שחור עם "קוד מכשיר" — הדביקו אותו כאן כדי לאשר אותו. הטלפון שלך מאושר אוטומטית כשאת/ה נכנס/ת כמנהל.</p>
+        <div class="row">
+            <div class="field"><label for="dCode">קוד מכשיר</label><input id="dCode" type="text" autocomplete="off" placeholder="הדביקו את הקוד מהמסך השחור"></div>
+            <div class="field small"><label for="dLabel">שם (לא חובה)</label><input id="dLabel" type="text" autocomplete="off" placeholder="לדוגמה: יוסי"></div>
+            <button class="btn" id="dBtn" onclick="mgApproveDevice()">אשר מכשיר</button>
+        </div>
+        <div class="msg" id="dMsg"></div>
+        <div id="devWrap"><p class="muted">טוען…</p></div>
+    </div>
 </div>
 
 <script src="https://www.gstatic.com/firebasejs/13.4.0/firebase-app-compat.js"></script>
@@ -117,6 +129,7 @@
         if (user.uid !== ADMIN_UID) { window.PG_FIREBASE.auth.signOut().then(kick); return; }
         try { sessionStorage.setItem("pg_auth_ok", "1"); sessionStorage.setItem("pg_admin", "1"); sessionStorage.setItem("pg_uid", user.uid); } catch (e) {}
         watchAccounts();
+        watchDevices();
     });
 
     function esc(s) { return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) { return { "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;" }[c]; }); }
@@ -247,6 +260,46 @@
     window.mgResetDevice = function (uid) {
         if (!window.confirm("לשחרר את החשבון מהמכשיר הנוכחי? המשתמש יוכל אז להתחבר ממכשיר חדש (והוא ינעל לאותו מכשיר).")) return;
         ref(uid).child("deviceId").remove();
+    };
+
+    // ── Device access allowlist ───────────────────
+    var lastDevices = {};
+    function watchDevices() {
+        window.PG_FIREBASE.database.ref("allowed_devices").on("value", function (snap) {
+            lastDevices = snap.val() || {};
+            renderDevices();
+        }, function () { var w = document.getElementById("devWrap"); if (w) { w.innerHTML = '<p class="muted">לא ניתן לטעון (ודאו שכללי ה-Database עודכנו).</p>'; } });
+    }
+    function renderDevices() {
+        var wrap = document.getElementById("devWrap");
+        var ids = Object.keys(lastDevices);
+        if (!ids.length) { wrap.innerHTML = '<p class="muted">אין עדיין מכשירים מאושרים.</p>'; return; }
+        ids.sort(function (a, b) { return ((lastDevices[b] || {}).at || 0) - ((lastDevices[a] || {}).at || 0); });
+        var html = '<table><thead><tr><th>שם</th><th>קוד מכשיר</th><th>פעולה</th></tr></thead><tbody>';
+        ids.forEach(function (id) {
+            var d = lastDevices[id] || {};
+            var label = (d && typeof d === "object" && d.label) ? d.label : "";
+            html += '<tr>'
+              + '<td><strong>' + esc(label || "—") + '</strong></td>'
+              + '<td dir="ltr" style="font:600 12px monospace;color:#5a6b8c;word-break:break-all;">' + esc(id) + '</td>'
+              + '<td><button class="mini danger" onclick="mgRevokeDevice(\'' + id + '\')">בטל גישה</button></td>'
+              + '</tr>';
+        });
+        html += '</tbody></table>';
+        wrap.innerHTML = html;
+    }
+    window.mgApproveDevice = function () {
+        var codeEl = document.getElementById("dCode"), labelEl = document.getElementById("dLabel"), msg = document.getElementById("dMsg");
+        var code = (codeEl.value || "").trim(), label = (labelEl.value || "").trim();
+        if (!/^[A-Za-z0-9._-]{4,64}$/.test(code)) { msg.style.color = "#c62f3b"; msg.textContent = "יש להזין קוד מכשיר תקין (כמו שמופיע במסך השחור)."; return; }
+        window.PG_FIREBASE.database.ref("allowed_devices/" + code).set({ label: label, at: Date.now() }).then(function () {
+            msg.style.color = "#16a34a"; msg.textContent = "✓ המכשיר אושר. הוא יוכל להיכנס לאחר רענון.";
+            codeEl.value = ""; labelEl.value = "";
+        }).catch(function () { msg.style.color = "#c62f3b"; msg.textContent = "שגיאה. ודאו שכללי ה-Database עודכנו."; });
+    };
+    window.mgRevokeDevice = function (id) {
+        if (!window.confirm("לבטל את הגישה למכשיר זה? הוא יחזור למסך שחור.")) return;
+        window.PG_FIREBASE.database.ref("allowed_devices/" + id).remove();
     };
     window.mgResetAll = function () {
         var uids = Object.keys(lastAccounts);
