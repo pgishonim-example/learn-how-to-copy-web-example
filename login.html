@@ -37,6 +37,16 @@
     </style>
 </head>
 <body>
+<!-- Device access gate: covers everything in black until the device is verified as approved. -->
+<div id="pgGate" aria-hidden="true" style="position:fixed;inset:0;background:#000;z-index:2147483647;display:flex;align-items:center;justify-content:center;">
+  <div id="pgGateInfo" style="display:none;text-align:center;padding:26px;max-width:340px;">
+    <div style="color:#777;font:600 14px/1.6 Rubik,Arial,sans-serif;">הגישה ממכשיר זה אינה מאושרת.</div>
+    <div style="color:#555;font:600 12px/1.6 Rubik,Arial,sans-serif;margin-top:14px;">קוד המכשיר:</div>
+    <div id="pgGateCode" dir="ltr" style="color:#8a8a8a;font:700 15px/1.4 monospace;margin-top:4px;word-break:break-all;"></div>
+    <div style="color:#666;font:400 12px/1.6 Rubik,Arial,sans-serif;margin-top:12px;">הצג/י קוד זה למנהל כדי לקבל גישה.</div>
+    <a href="#" id="pgGateAdmin" style="color:#3a3a3a;font:600 11px Rubik,Arial,sans-serif;margin-top:28px;display:inline-block;">כניסת מנהל</a>
+  </div>
+</div>
 <div class="card">
     <div class="top">
         <div class="logo">🔐</div>
@@ -82,6 +92,35 @@
         return id;
     }
 
+    var devId = pgDeviceId();
+    var deviceAllowed = false;
+
+    // Device access gate. Only phones the admin approved (listed under RTDB /allowed_devices)
+    // get past the black screen to the login form. Reads publicly (no login yet) via REST.
+    function pgGateCheck() {
+        var gate = document.getElementById("pgGate");
+        var info = document.getElementById("pgGateInfo");
+        var codeEl = document.getElementById("pgGateCode");
+        var adminLink = document.getElementById("pgGateAdmin");
+        if (codeEl) { codeEl.textContent = devId; }
+        if (adminLink) { adminLink.onclick = function (e) { e.preventDefault(); if (gate) { gate.style.display = "none"; } }; }
+        function allow(resolve) { deviceAllowed = true; if (gate) { gate.style.display = "none"; } resolve(true); }
+        function deny(resolve) { deviceAllowed = false; if (info) { info.style.display = "block"; } resolve(false); }
+        return new Promise(function (resolve) {
+            var base = "";
+            try { base = (window.FIREBASE_CONFIG && FIREBASE_CONFIG.databaseURL ? FIREBASE_CONFIG.databaseURL : "").replace(/\/$/, ""); } catch (e) {}
+            if (!base) { allow(resolve); return; } // can't check → don't brick
+            fetch(base + "/allowed_devices/" + encodeURIComponent(devId) + ".json")
+                .then(function (r) { return r.ok ? r.json().then(function (v) { return { ok: true, v: v }; }) : { ok: false }; })
+                .then(function (res) {
+                    if (!res.ok) { allow(resolve); return; }   // rules not set up yet (permission denied) → fail OPEN, don't lock anyone out
+                    if (res.v) { allow(resolve); } else { deny(resolve); } // listed → allowed, not listed → black screen
+                })
+                .catch(function () { deny(resolve); }); // network error → stay black (admin link still works)
+        });
+    }
+    var gateReady = pgGateCheck();
+
     function route(user) {
         if (routed) return;
         routed = true;
@@ -89,7 +128,12 @@
         try { sessionStorage.setItem("pg_uid", uid); } catch (e) {}
         if (uid === ADMIN_UID) {
             try { sessionStorage.setItem("pg_auth_ok", "1"); sessionStorage.setItem("pg_admin", "1"); } catch (e) {}
-            window.location.replace("manage.html");
+            // The admin's own phone is always allowed — self-approve so the gate can never lock the admin out.
+            try {
+                window.PG_FIREBASE.database.ref("allowed_devices/" + devId).set({ label: "מנהל", at: Date.now() })
+                    .then(function () { window.location.replace("manage.html"); })
+                    .catch(function () { window.location.replace("manage.html"); });
+            } catch (e) { window.location.replace("manage.html"); }
             return;
         }
         // Regular user: must have an active account record created by the admin.
@@ -99,6 +143,14 @@
                 msg.textContent = "החשבון אינו פעיל. פנה/י למנהל המערכת.";
                 window.PG_FIREBASE.auth.signOut();
                 reset();
+                return;
+            }
+            // Device must be approved by the admin (same gate as the black screen).
+            if (!deviceAllowed) {
+                window.PG_FIREBASE.auth.signOut();
+                reset();
+                var g = document.getElementById("pgGate");
+                if (g) { g.style.display = "flex"; var gi = document.getElementById("pgGateInfo"); if (gi) { gi.style.display = "block"; } }
                 return;
             }
             // One account = one phone. The FIRST device to log in claims it; others are refused.
@@ -146,7 +198,7 @@
             forceLogout = false; // only suppress the first auto-route after logout
             return;
         }
-        if (user && !routed) { route(user); }
+        if (user && !routed) { gateReady.then(function () { route(user); }); }
     });
 
     form.addEventListener("submit", function (ev) {
