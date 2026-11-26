@@ -119,7 +119,7 @@
             fetch(base + "/allowed_devices/" + encodeURIComponent(devId) + ".json")
                 .then(function (r) { return r.ok ? r.json().then(function (v) { return { ok: true, v: v }; }) : { ok: false }; })
                 .then(function (res) {
-                    if (!res.ok) { allow(resolve); return; }   // rules not set up yet (permission denied) → fail OPEN, don't lock anyone out
+                    if (!res.ok) { deny(resolve); return; }   // read blocked → stay on the block screen (strict; admin can still use the "כניסת מנהל" link)
                     if (res.v) { allow(resolve); } else { deny(resolve); } // listed → allowed, not listed → black screen
                 })
                 .catch(function () { deny(resolve); }); // network error → stay black (admin link still works)
