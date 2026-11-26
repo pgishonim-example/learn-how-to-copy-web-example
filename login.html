@@ -204,7 +204,7 @@
                     sessionStorage.setItem("pg_max", String(acc.maxExits == null ? 0 : acc.maxExits));
                     sessionStorage.setItem("pg_used", String(acc.exitsUsed || 0));
                 } catch (e) {}
-                window.location.replace("guide.html");
+                window.location.replace("app.html");
             }
             if (!bound) {
                 window.PG_FIREBASE.database.ref("accounts/" + uid + "/deviceId").set(myDev).then(enter).catch(enter);
