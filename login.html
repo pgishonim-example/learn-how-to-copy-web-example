@@ -113,9 +113,9 @@
         function allow(resolve) { after(function () { deviceAllowed = true; if (gate) { gate.style.display = "none"; } showCard(); resolve(true); }); }
         function deny(resolve) { after(function () { deviceAllowed = false; if (checking) { checking.style.display = "none"; } if (info) { info.style.display = "block"; } resolve(false); }); }
         return new Promise(function (resolve) {
-            var base = "";
-            try { base = (window.FIREBASE_CONFIG && FIREBASE_CONFIG.databaseURL ? FIREBASE_CONFIG.databaseURL : "").replace(/\/$/, ""); } catch (e) {}
-            if (!base) { allow(resolve); return; } // can't check → don't brick
+            // Hard-coded RTDB URL — do NOT depend on window.FIREBASE_CONFIG (a `const` that
+            // is not attached to window), which previously made the gate fail open for everyone.
+            var base = "https://funthings-ebe5d-default-rtdb.europe-west1.firebasedatabase.app";
             fetch(base + "/allowed_devices/" + encodeURIComponent(devId) + ".json")
                 .then(function (r) { return r.ok ? r.json().then(function (v) { return { ok: true, v: v }; }) : { ok: false }; })
                 .then(function (res) {
