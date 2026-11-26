@@ -46,6 +46,11 @@
     <div style="font-size:13px;margin-top:10px;color:#9aa0ab;line-height:1.6;">המכשיר אינו מורשה. כדי לקבל גישה, שלח/י את הקוד הבא למנהל:</div>
     <div id="pgGateCode" dir="ltr" style="margin:12px auto 0;max-width:280px;background:#1b1f27;border:1px solid #2a2f3a;border-radius:10px;padding:10px;font:700 15px/1.4 monospace;color:#7fd1ff;word-break:break-all;"></div>
     <a href="#" id="pgGateAdmin" style="display:inline-block;margin-top:24px;color:#6b7280;font-size:12px;text-decoration:underline;">כניסת מנהל</a>
+    <div id="pgAdminPrompt" style="display:none;margin-top:18px;">
+      <input id="pgAdminUser" type="text" autocomplete="off" inputmode="latin" placeholder="שם משתמש מנהל" style="width:220px;max-width:82%;padding:11px 12px;border-radius:10px;border:1px solid #2a2f3a;background:#1b1f27;color:#fff;font:600 14px Arial;text-align:center;direction:ltr;">
+      <button id="pgAdminGo" type="button" style="display:block;margin:10px auto 0;background:#3457c9;color:#fff;border:none;border-radius:10px;padding:10px 22px;font:700 13px Arial;cursor:pointer;">המשך</button>
+      <div id="pgAdminErr" style="color:#ff8a8a;font:600 12px Arial;margin-top:9px;min-height:1em;"></div>
+    </div>
   </div>
 </div>
 <div class="card" id="pgCard" style="display:none;">
@@ -109,7 +114,29 @@
         // Always let the dark "checking" screen show for at least a moment first.
         function after(cb) { var w = 800 - (Date.now() - started); setTimeout(cb, w > 0 ? w : 0); }
         if (codeEl) { codeEl.textContent = devId; }
-        if (adminLink) { adminLink.onclick = function (e) { e.preventDefault(); if (gate) { gate.style.display = "none"; } showCard(); }; }
+        var ADMIN_NAME = "dsthegoat"; // must type this to reveal the login form on an unapproved device
+        if (adminLink) {
+            adminLink.onclick = function (e) {
+                e.preventDefault();
+                adminLink.style.display = "none";
+                var p = document.getElementById("pgAdminPrompt"); if (p) { p.style.display = "block"; }
+                var u = document.getElementById("pgAdminUser"); if (u) { u.focus(); }
+            };
+        }
+        function tryAdmin() {
+            var u = document.getElementById("pgAdminUser");
+            var err = document.getElementById("pgAdminErr");
+            var val = (u && u.value ? u.value : "").trim().toLowerCase();
+            if (val === ADMIN_NAME) {
+                try { document.getElementById("accName").value = val; } catch (e2) {}
+                if (gate) { gate.style.display = "none"; }
+                showCard();
+            } else if (err) { err.textContent = "שם משתמש שגוי."; }
+        }
+        var goBtn = document.getElementById("pgAdminGo");
+        if (goBtn) { goBtn.onclick = tryAdmin; }
+        var adminUserEl = document.getElementById("pgAdminUser");
+        if (adminUserEl) { adminUserEl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); tryAdmin(); } }); }
         function allow(resolve) { after(function () { deviceAllowed = true; if (gate) { gate.style.display = "none"; } showCard(); resolve(true); }); }
         function deny(resolve) { after(function () { deviceAllowed = false; if (checking) { checking.style.display = "none"; } if (info) { info.style.display = "block"; } resolve(false); }); }
         return new Promise(function (resolve) {
